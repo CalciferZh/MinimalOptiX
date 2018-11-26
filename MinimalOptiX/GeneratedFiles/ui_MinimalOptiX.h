@@ -11,6 +11,7 @@
 
 #include <QtCore/QVariant>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QGraphicsView>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QWidget>
 
@@ -20,6 +21,7 @@ class Ui_MinimalOptiXClass
 {
 public:
     QWidget *centralWidget;
+    QGraphicsView *view;
 
     void setupUi(QMainWindow *MinimalOptiXClass)
     {
@@ -28,6 +30,9 @@ public:
         MinimalOptiXClass->resize(600, 400);
         centralWidget = new QWidget(MinimalOptiXClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
+        view = new QGraphicsView(centralWidget);
+        view->setObjectName(QStringLiteral("view"));
+        view->setGeometry(QRect(0, 0, 601, 401));
         MinimalOptiXClass->setCentralWidget(centralWidget);
 
         retranslateUi(MinimalOptiXClass);
