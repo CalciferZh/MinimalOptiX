@@ -134,14 +134,8 @@ advapi32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;%(AdditionalDe
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="Context.cpp" />
-    <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Material.cpp" />
     <ClCompile Include="MinimalOptiX.cpp" />
-    <ClCompile Include="MissProgram.cpp" />
-    <ClCompile Include="Ray.cpp" />
-    <ClCompile Include="RtObject.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -155,13 +149,14 @@ advapi32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;%(AdditionalDe
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="Context.h" />
-    <ClInclude Include="Geometry.h" />
-    <ClInclude Include="Material.h" />
-    <ClInclude Include="MissProgram.h" />
-    <ClInclude Include="Ray.h" />
-    <ClInclude Include="RtObject.h" />
     <ClInclude Include="Utility.h" />
+    <ClInclude Include="Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Camera.cu" />
+    <None Include="Exception.cu" />
+    <None Include="Material.cu" />
+    <None Include="MissProgram.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

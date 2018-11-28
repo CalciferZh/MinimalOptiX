@@ -16,15 +16,22 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   canvas = QImage(ui.view->size(), QImage::Format_RGB888);
 
   setupContext();
-  context.launch();
+  setupScene(SCENE_0);
+  context->validate();
+  context->launch(0, fixedWidth, fixedHeight);
   updateScene();
 }
 
 void MinimalOptiX::updateScene() {
+  uchar* bufferData = (uchar*)context["outputBuffer"]->getBuffer()->map();
+
   QColor color;
   for (int i = 0; i < fixedWidth; ++i) {
     for (int j = 0; j < fixedHeight; ++j) {
-      float3toQColor(context.displayBuffer[i][j], color);
+      uchar* src = bufferData + 4 * fixedWidth * j;
+      color.setBlue((int)*(src + 0));
+      color.setGreen((int)*(src + 1));
+      color.setRed((int)*(src + 2));
       canvas.setPixelColor(i, fixedHeight - j - 1, color);
     }
   }
@@ -51,53 +58,70 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
 }
 
 void MinimalOptiX::setupContext() {
-  // Camera
-  optix::float3 lookFrom = { 0.f, 1.5f, 1.5f };
-  optix::float3 lookAt = { 0.f, 0.f, -1.f };
-  optix::float3 up = { 0.f, 1.f, 0.f };
-  context.camera.set(
-    lookFrom, lookAt, up, 90, (float)fixedWidth / (float)fixedHeight
-  );
+  context = optix::Context::create();
+  context->setRayTypeCount(2);
+  context->setEntryPointCount(1);
+  context->setStackSize(9608);
 
-  // Miss Program
-  context.mp = std::make_shared<VerticalGradienMissProgram>();
+  context["maxDepth"]->setInt(128);
+  context["rayTypeRadience"]->setUint(0);
+  context["rayTypeShadow"]->setUint(1);
+  context["rayEpsilonT"]->setFloat(1.e-4f);
+  context["intensityCutOff"]->setFloat(1.e-2f);
+  context["ambientLightColor"]->setFloat(0.31f, 0.31f, 0.31f);
 
-  // Screen
-  context.setSize(fixedWidth, fixedHeight);
+  optix::Buffer outputBuffer = context->createBuffer(context, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
+  context["outputBuffer"]->set(outputBuffer);
 
-  // Scene
-  setupScene(SCENE_0);
+  // Exception
+  optix::Program exptProgram = context->createProgramFromPTXFile("Exception.cu", "exception");
+  context->setExceptionProgram(0, exptProgram);
+  context["badColor"]->setFloat(1.f, 0.f, 0.f);
+
+  // Miss
+  optix::Program missProgram = context->createProgramFromPTXFile("MissProgram.cu", "staticMiss");
+  context->setMissProgram(0, missProgram);
+  context["bgColor"]->setFloat(0.34f, 0.55f, 0.85f);
 }
 
 void MinimalOptiX::setupScene(SceneNum num) {
   if (num == SCENE_0) {
-    auto rto = std::make_shared<RtObject>();
-    rto->geometry = std::make_shared<Sphere>(optix::float3{ 0.f, 0.f, -1.f }, 0.5f);
-    rto->material = std::make_shared<LambertianMaterial>(optix::float3{ 0.1f, 0.2f, 0.5f });
-    context.world.emplace_back(rto);
+    optix::Program sphereIntersect = context->createProgramFromPTXString("Geometry.cu", "sphereIntersect");
+    optix::Program sphereBBox = context->createProgramFromPTXString("Geometry.cu", "sphereBBox");
+    optix::Program staticMtl = context->createProgramFromPTXString("Material.cu", "closestHitStatic");
 
-    rto = std::make_shared<RtObject>();
-    rto->geometry = std::make_shared<Triangle>(
-      optix::float3{ 2.f, -0.5f, -2.f },
-      optix::float3{ -2.f, -0.5f, -2.f },
-      optix::float3{ 0.f, -0.5f, 1.f }
-    );
-    rto->material = std::make_shared<LambertianMaterial>(optix::float3{ 0.8f, 0.8f, 0.f });
-    context.world.emplace_back(rto);
+    optix::Geometry sphereMid = context->createGeometry();
+    sphereMid->setPrimitiveCount(1u);
+    sphereMid->setIntersectionProgram(sphereIntersect);
+    sphereMid->setBoundingBoxProgram(sphereBBox);
+    sphereMid["radius"]->setFloat(0.5f);
+    sphereMid["center"]->setFloat(0.f, 0.f, -1.f);
+    
+    optix::Material sphereMidMtl = context->createMaterial();
+    sphereMidMtl->setClosestHitProgram(0, staticMtl);
+    sphereMidMtl["mtlColor"]->setFloat(0.1f, 0.2f, 0.5f);
 
-    rto = std::make_shared<RtObject>();
-    rto->geometry = std::make_shared<Sphere>(optix::float3{ 1.f, 0.f, -1.f }, 0.5f);
-    rto->material = std::make_shared<MetalMaterial>(optix::float3{ 0.8f, 0.6f, 0.2f });
-    context.world.emplace_back(rto);
+    optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
-    rto = std::make_shared<RtObject>();
-    rto->geometry = std::make_shared<Sphere>(optix::float3{ -1.f, 0.f, -1.f }, 0.5f);
-    rto->material = std::make_shared<DielectricMaterial>(1.5f);
-    context.world.emplace_back(rto);
+    optix::GeometryGroup geoGrp = context->createGeometryGroup();
+    geoGrp->setChildCount(1);
+    geoGrp->setChild(0, sphereMidGI);
+    geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
 
-    rto = std::make_shared<RtObject>();
-    rto->geometry = std::make_shared<Sphere>(optix::float3{ -1.f, 0.f, -1.f }, -0.45);
-    rto->material = std::make_shared<DielectricMaterial>(1.5);
-    context.world.emplace_back(rto);
+    context["topObject"]->set(geoGrp);
+
+
+    Camera camera;
+    optix::float3 lookFrom = { 0.f, 1.5f, 1.5f };
+    optix::float3 lookAt = { 0.f, 0.f, -1.f };
+    optix::float3 up = { 0.f, 1.f, 0.f };
+    camera.set(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight);
+    optix::Program rayGenProgram = context->createProgramFromPTXFile("Camera.cu", "pinholeCamera");
+    rayGenProgram["origin"]->setFloat(camera.origin);
+    rayGenProgram["u"]->setFloat(camera.u);
+    rayGenProgram["v"]->setFloat(camera.v);
+    rayGenProgram["w"]->setFloat(camera.w);
+    rayGenProgram["scrLowerLeftCorner"]->setFloat(camera.lowerLeftCorner);
+    context->setRayGenerationProgram(0, rayGenProgram);
   }
 }

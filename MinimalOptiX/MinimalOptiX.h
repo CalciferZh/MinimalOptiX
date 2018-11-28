@@ -7,8 +7,9 @@
 #include <QGraphicsScene>
 #include <QMessageBox>
 #include <QDebug>
+#include <optix_world.h>
 #include "ui_MinimalOptiX.h"
-#include "Context.h"
+#include "Camera.h"
 
 
 class MinimalOptiX : public QMainWindow {
@@ -29,7 +30,7 @@ public:
 	// GUI Components
 	QGraphicsScene scene;
 	QImage canvas;
-  Context context;
+  optix::Context context;
 
   // Attributes
   int fixedWidth = 1024;
