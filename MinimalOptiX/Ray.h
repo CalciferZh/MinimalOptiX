@@ -8,9 +8,8 @@ public:
   Payload() = default;
   Payload(const Payload& payload);
 
-  optix::float3 color;
-  optix::float3 normal;
-  optix::float3 attenuation = { 1.0f, 1.0f, 1.0f };
+  optix::float3 color{ 0.f, 0.f, 0.f };
+  optix::float3 normal{ 0.f, 0.f, 0.f };
   float parameter; // parameter of ray
   int objIdx; // index of object hit
   int age = 1;

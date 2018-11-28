@@ -16,7 +16,7 @@ public:
   VerticalGradienMissProgram() = default;
   void operator()(Ray& ray) override;
 
-  optix::float3 color1 = { 0.5, 0.7, 1.0 };
-  optix::float3 color2 = { 1.0, 1.0, 1.0 };
+  optix::float3 color1 = { 0.5f, 0.7f, 1.0f };
+  optix::float3 color2 = { 1.0f, 1.0f, 1.0f };
 };
 

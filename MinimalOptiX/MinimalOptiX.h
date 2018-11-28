@@ -6,6 +6,7 @@
 #include <QString>
 #include <QGraphicsScene>
 #include <QMessageBox>
+#include <QDebug>
 #include "ui_MinimalOptiX.h"
 #include "Context.h"
 
@@ -21,7 +22,6 @@ public:
 
 	// Utilities
 	void updateScene();
-  void drawSomething();
   void setupContext();
   void setupScene(SceneNum num);
   void float3toQColor(optix::float3& f, QColor& color);

@@ -35,7 +35,6 @@ void MinimalOptiX::updateScene() {
 }
 
 void MinimalOptiX::float3toQColor(optix::float3& f, QColor& color) {
-  //color.setRgb((int)(f.x * 255), (int)(f.y * 255), (int)(f.z * 255));
   color.setRgb((int)(sqrt(f.x) * 255), (int)(sqrt(f.y) * 255), (int)(sqrt(f.z) * 255));
 }
 
@@ -48,18 +47,6 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
       "Image saved!",
       QMessageBox::Ok
     );
-  }
-}
-
-void MinimalOptiX::drawSomething() {
-  for (float i = 0; i < fixedWidth; ++i) {
-    for (float j = 0; j < fixedHeight; ++j) {
-      canvas.setPixelColor(i, j, QColor(
-        (i + 1) / canvas.width() * 255,
-        (j + 1) / canvas.height() * 255,
-        0.2 * 255
-      ));
-    }
   }
 }
 
@@ -85,7 +72,7 @@ void MinimalOptiX::setupContext() {
 void MinimalOptiX::setupScene(SceneNum num) {
   if (num == SCENE_0) {
     auto rto = std::make_shared<RtObject>();
-    rto->geometry = std::make_shared<Sphere>(optix::float3{ 0.f, 0.f, -1.f }, 0.5);
+    rto->geometry = std::make_shared<Sphere>(optix::float3{ 0.f, 0.f, -1.f }, 0.5f);
     rto->material = std::make_shared<LambertianMaterial>(optix::float3{ 0.1f, 0.2f, 0.5f });
     context.world.emplace_back(rto);
 
@@ -95,17 +82,17 @@ void MinimalOptiX::setupScene(SceneNum num) {
       optix::float3{ -2.f, -0.5f, -2.f },
       optix::float3{ 0.f, -0.5f, 1.f }
     );
-    rto->material = std::make_shared<LambertianMaterial>(optix::float3{ 0.8, 0.8, 0.0 });
+    rto->material = std::make_shared<LambertianMaterial>(optix::float3{ 0.8f, 0.8f, 0.f });
     context.world.emplace_back(rto);
 
     rto = std::make_shared<RtObject>();
-    rto->geometry = std::make_shared<Sphere>(optix::float3{ 1.f, 0.f, -1.f }, 0.5);
+    rto->geometry = std::make_shared<Sphere>(optix::float3{ 1.f, 0.f, -1.f }, 0.5f);
     rto->material = std::make_shared<MetalMaterial>(optix::float3{ 0.8f, 0.6f, 0.2f });
     context.world.emplace_back(rto);
 
     rto = std::make_shared<RtObject>();
-    rto->geometry = std::make_shared<Sphere>(optix::float3{ -1.f, 0.f, -1.f }, 0.5);
-    rto->material = std::make_shared<DielectricMaterial>(1.5);
+    rto->geometry = std::make_shared<Sphere>(optix::float3{ -1.f, 0.f, -1.f }, 0.5f);
+    rto->material = std::make_shared<DielectricMaterial>(1.5f);
     context.world.emplace_back(rto);
 
     rto = std::make_shared<RtObject>();

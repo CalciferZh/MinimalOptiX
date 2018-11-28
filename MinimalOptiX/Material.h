@@ -27,7 +27,7 @@ public:
 
   bool hit(Ray& ray, std::vector<Ray>& scatterd);
 
-  optix::float3 albedo = { 0.5, 0.5, 0.5 };
+  optix::float3 albedo = { 0.5f, 0.5f, 0.5f };
   int nScatter = 0;
 };
 

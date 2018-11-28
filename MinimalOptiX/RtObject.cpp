@@ -18,7 +18,7 @@ bool RtObject::hit(Ray& ray, float tMin, float tMax) {
 bool RtObject::getColor(Ray& ray, std::vector<Ray>& scattered) {
   if (subObjects.empty()) {
     if (material) {
-      material->hit(ray, scattered);
+      return material->hit(ray, scattered);
     } else {
       throw std::logic_error("Mo material attached to RtObject");
     }

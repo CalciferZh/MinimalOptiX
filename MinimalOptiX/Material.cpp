@@ -6,14 +6,12 @@ bool Material::hit(Ray& ray, std::vector<Ray>& scatterd) {
   return true;
 }
 
-
 bool LambertianMaterial::hit(Ray& ray, std::vector<Ray>& scatterd) {
   optix::float3 intersection = ray.point_at(ray.payload.parameter);
-  int nNewRay = nScatter / ray.payload.age + 1;
+  float nNewRay = float(nScatter / ray.payload.age + 1);
   Ray tmp(intersection, optix::float3());
+  tmp.payload.color = ray.payload.color * albedo / nNewRay;
   tmp.payload.age = ray.payload.age + 1;
-  tmp.payload.attenuation = ray.payload.attenuation * albedo;
-  tmp.payload.attenuation /= nNewRay;
   for (int i = 0; i < nNewRay; ++i) {
     tmp.direction = ray.payload.normal + Utility::randInUnitSphere();
     scatterd.push_back(tmp);
@@ -21,12 +19,11 @@ bool LambertianMaterial::hit(Ray& ray, std::vector<Ray>& scatterd) {
   return false;
 }
 
-
 bool MetalMaterial::hit(Ray& ray, std::vector<Ray>& scatterd) {
   optix::float3 reflected = Utility::reflect(optix::normalize(ray.direction), ray.payload.normal);
   Ray tmp(ray.point_at(ray.payload.parameter), reflected + fuzz * Utility::randInUnitSphere());
+  tmp.payload.color = ray.payload.color * albedo;
   tmp.payload.age = ray.payload.age + 1;
-  tmp.payload.attenuation = ray.payload.attenuation * albedo;
   scatterd.push_back(tmp);
   return false;
 }
@@ -56,7 +53,7 @@ bool DielectricMaterial::hit(Ray& ray, std::vector<Ray>& scattered) {
   Ray tmp;
   tmp.origin = ray.point_at(ray.payload.parameter);
   tmp.payload.age = ray.payload.age + 1;
-  tmp.payload.attenuation = ray.payload.attenuation * albedo;
+  tmp.payload.color = ray.payload.color * albedo;
   if (Utility::randReal() < reflectProb) {
     tmp.direction = reflected;
   } else {

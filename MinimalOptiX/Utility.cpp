@@ -53,7 +53,7 @@ namespace Utility {
   bool refract(optix::float3& v, optix::float3& n, float refRatio, optix::float3& refracted) {
     optix::float3 vUnit = optix::normalize(v);
     float dt = optix::dot(vUnit, n);
-    float discriminant = 1.0 - refRatio * refRatio * (1 - dt * dt);
+    float discriminant = 1.0f - refRatio * refRatio * (1 - dt * dt);
     if (discriminant > 0) {
       refracted = refRatio * (vUnit - n * dt) - n * sqrt(discriminant);
       return true;

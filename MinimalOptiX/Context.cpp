@@ -2,29 +2,32 @@
 
 
 void Context::launch() {
-  Ray ray;
-  float u;
-  float v;
-  optix::float3 color;
   for (int i = 0; i < width; ++i) {
+
+#ifndef _DEBUG
+#pragma omp parallel
+#pragma omp for
+#endif
+
     for (int j = 0; j < height; ++j) {
-      color = { 0.f, 0.f, 0.f };
+      Ray ray;
+      optix::float3 color = { 0.f, 0.f, 0.f };
       for (int k = 0; k < nSupersampling; ++k) {
         ray.payload.reset();
-        u = float(i + Utility::randReal()) / float(width);
-        v = float(j + Utility::randReal()) / float(height);
+        float u = float(i + Utility::randReal()) / float(width);
+        float v = float(j + Utility::randReal()) / float(height);
         camera.getRay(u, v, ray);
         rayTrace(ray);
-        color += ray.payload.color * ray.payload.attenuation;
+        color += ray.payload.color;
       }
-      displayBuffer[i][j] = color / nSupersampling;
+      displayBuffer[i][j] = color / float(nSupersampling);
     }
   }
 }
 
 
 void Context::rayTrace(Ray& ray) {
-  if (optix::length(ray.payload.attenuation) < rayMinIntensity || ray.payload.age > rayLifeSpan) {
+  if (optix::length(ray.payload.color) < rayMinIntensity || ray.payload.age > rayLifeSpan) {
     ray.payload.color = absortColor;
     return;
   }
@@ -46,10 +49,13 @@ void Context::rayTrace(Ray& ray) {
     if (world[nearstObj]->getColor(ray, scattered)) {
       return;
     } else {
+      optix::float3 accuColor{ 0.f, 0.f, 0.f };
       for (auto& newRay: scattered) {
         rayTrace(newRay);
-        ray.payload.color += newRay.payload.color * newRay.payload.attenuation;
+        accuColor += newRay.payload.color;
       }
+      ray.payload.color = accuColor;
+      return;
     }
   } else {
     (*mp)(ray);

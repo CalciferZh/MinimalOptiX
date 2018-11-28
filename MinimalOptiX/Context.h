@@ -28,10 +28,10 @@ public:
   void rayTrace(Ray& ray);
 
   // Attributes
-  int nSupersampling = 32;
+  int nSupersampling = 64;
   int rayLifeSpan = 128;
   float rayMinIntensity = 0.01;
-  float rayMinParameter = 0.001;
+  float rayMinParameter = 0.01;
   float rayMaxParameter = std::numeric_limits<float>::max();
   optix::float3 absortColor = { 0.f, 0.f, 0.f };
 
