@@ -1,6 +1,5 @@
 #include <optix_world.h>
 #include "Structures.h"
-#include "Utils.h"
 
 using namespace optix;
 
@@ -29,5 +28,10 @@ RT_PROGRAM void pinholeCamera() {
   pldR.intensity = 1.f;
   pldR.depth = 0;
   rtTrace(topObject, ray, pldR);
-  outputBuffer[launchIdx] = makeColor(pldR.color);
+  outputBuffer[launchIdx] = make_uchar4(
+    static_cast<unsigned char>(__saturatef(pldR.color.z)*255.99f),
+    static_cast<unsigned char>(__saturatef(pldR.color.y)*255.99f),
+    static_cast<unsigned char>(__saturatef(pldR.color.x)*255.99f),
+    255u
+  );
 }

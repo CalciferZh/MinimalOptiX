@@ -1,5 +1,4 @@
 #include <optix_world.h>
-#include "Utils.h"
 
 using namespace optix;
 
@@ -8,5 +7,10 @@ rtDeclareVariable(uint2, launchIdx, rtLaunchIndex, );
 rtBuffer<uchar4, 2> outputBuffer;
 
 RT_PROGRAM void exception() {
-  outputBuffer[launchIdx] = makeColor(badColor);
+  outputBuffer[launchIdx] = make_uchar4(
+    static_cast<unsigned char>(__saturatef(pldR.color.z)*255.99f),
+    static_cast<unsigned char>(__saturatef(pldR.color.y)*255.99f),
+    static_cast<unsigned char>(__saturatef(pldR.color.x)*255.99f),
+    255u
+  );
 }

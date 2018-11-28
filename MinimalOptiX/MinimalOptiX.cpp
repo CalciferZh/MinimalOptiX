@@ -15,11 +15,21 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   canvas = QImage(ui.view->size(), QImage::Format_RGB888);
 
+  compilePtx();
   setupContext();
   setupScene(SCENE_0);
   context->validate();
   context->launch(0, fixedWidth, fixedHeight);
   updateScene();
+}
+
+void MinimalOptiX::compilePtx() {
+  std::string value;
+
+  for (auto& key : cuFiles) {
+    cuFileToPtxStr(key, value);
+    ptxStrs.insert(std::make_pair(key, value));
+  }
 }
 
 void MinimalOptiX::updateScene() {
@@ -39,10 +49,6 @@ void MinimalOptiX::updateScene() {
   scene.clear();
   scene.addPixmap(tmpPixmap);
   ui.view->update();
-}
-
-void MinimalOptiX::float3toQColor(optix::float3& f, QColor& color) {
-  color.setRgb((int)(sqrt(f.x) * 255), (int)(sqrt(f.y) * 255), (int)(sqrt(f.z) * 255));
 }
 
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
@@ -74,21 +80,21 @@ void MinimalOptiX::setupContext() {
   context["outputBuffer"]->set(outputBuffer);
 
   // Exception
-  optix::Program exptProgram = context->createProgramFromPTXFile("Exception.cu", "exception");
+  optix::Program exptProgram = context->createProgramFromPTXString(ptxStrs["Exception.cu"], "exception");
   context->setExceptionProgram(0, exptProgram);
   context["badColor"]->setFloat(1.f, 0.f, 0.f);
 
   // Miss
-  optix::Program missProgram = context->createProgramFromPTXFile("MissProgram.cu", "staticMiss");
+  optix::Program missProgram = context->createProgramFromPTXString(ptxStrs["MissProgram.cu"], "staticMiss");
   context->setMissProgram(0, missProgram);
   context["bgColor"]->setFloat(0.34f, 0.55f, 0.85f);
 }
 
 void MinimalOptiX::setupScene(SceneNum num) {
   if (num == SCENE_0) {
-    optix::Program sphereIntersect = context->createProgramFromPTXString("Geometry.cu", "sphereIntersect");
-    optix::Program sphereBBox = context->createProgramFromPTXString("Geometry.cu", "sphereBBox");
-    optix::Program staticMtl = context->createProgramFromPTXString("Material.cu", "closestHitStatic");
+    optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs["Geometry.cu"], "sphereIntersect");
+    optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs["Geometry.cu"], "sphereBBox");
+    optix::Program staticMtl = context->createProgramFromPTXString(ptxStrs["Material.cu"], "closestHitStatic");
 
     optix::Geometry sphereMid = context->createGeometry();
     sphereMid->setPrimitiveCount(1u);
@@ -116,7 +122,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     optix::float3 lookAt = { 0.f, 0.f, -1.f };
     optix::float3 up = { 0.f, 1.f, 0.f };
     camera.set(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight);
-    optix::Program rayGenProgram = context->createProgramFromPTXFile("Camera.cu", "pinholeCamera");
+    optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs["Camera.cu"], "pinholeCamera");
     rayGenProgram["origin"]->setFloat(camera.origin);
     rayGenProgram["u"]->setFloat(camera.u);
     rayGenProgram["v"]->setFloat(camera.v);

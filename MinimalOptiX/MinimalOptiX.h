@@ -8,8 +8,11 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <optix_world.h>
+#include <unordered_map>
+#include <exception>
 #include "ui_MinimalOptiX.h"
 #include "Camera.h"
+#include "Utils.h"
 
 
 class MinimalOptiX : public QMainWindow {
@@ -22,15 +25,17 @@ public:
 	MinimalOptiX(QWidget *parent = Q_NULLPTR);
 
 	// Utilities
+  void compilePtx();
 	void updateScene();
   void setupContext();
   void setupScene(SceneNum num);
-  void float3toQColor(optix::float3& f, QColor& color);
 
-	// GUI Components
+	// Components
 	QGraphicsScene scene;
 	QImage canvas;
   optix::Context context;
+  std::map<std::string, std::string> ptxStrs;
+  std::vector<std::string> cuFiles = { "Camera.cu", "Exception.cu", "Material.cu", "MissProgram.cu" };
 
   // Attributes
   int fixedWidth = 1024;

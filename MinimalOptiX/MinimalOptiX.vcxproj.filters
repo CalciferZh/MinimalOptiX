@@ -42,6 +42,9 @@
     <ClCompile Include="Utility.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="MinimalOptiX.h">
@@ -68,19 +71,8 @@
     <ClInclude Include="Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Camera.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="Exception.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="Material.cu">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="MissProgram.cu">
-      <Filter>Source Files</Filter>
-    </None>
+    <ClInclude Include="Structures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
