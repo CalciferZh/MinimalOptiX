@@ -15,7 +15,7 @@ rtDeclareVariable(uint, rayTypeRadience, , );
 rtDeclareVariable(uint, rayTypeShadow, , );
 rtDeclareVariable(PayloadRadiance, pldR, rtPayload, );
 rtDeclareVariable(rtObject, topObject, , );
-rtBuffer<uchar, 2> outputBuffer;
+rtBuffer<uchar4, 2> outputBuffer;
 
 RT_PROGRAM void pinholeCamera() {
   size_t2 screen = outputBuffer.size();

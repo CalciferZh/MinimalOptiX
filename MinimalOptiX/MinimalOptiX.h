@@ -35,7 +35,7 @@ public:
 	QImage canvas;
   optix::Context context;
   std::map<std::string, std::string> ptxStrs;
-  std::vector<std::string> cuFiles = { "Camera.cu", "Exception.cu", "Material.cu", "MissProgram.cu" };
+  std::vector<std::string> cuFiles = { "Camera.cu", "Exception.cu", "Material.cu", "MissProgram.cu", "Geometry.cu" };
 
   // Attributes
   int fixedWidth = 1024;
