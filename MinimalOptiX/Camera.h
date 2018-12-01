@@ -17,7 +17,6 @@ public:
   optix::float3 horizontal;
   optix::float3 vertical;
   optix::float3 lowerLeftCorner;
-  optix::float3 u, v, w;
 
   const float pi = 3.141592653589793238462643383279502884;
 };

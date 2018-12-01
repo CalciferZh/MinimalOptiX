@@ -38,8 +38,8 @@ public:
   std::vector<std::string> cuFiles = { "Camera.cu", "Exception.cu", "Material.cu", "MissProgram.cu", "Geometry.cu" };
 
   // Attributes
-  int fixedWidth = 1024;
-  int fixedHeight = 512;
+  uint fixedWidth = 1024u;
+  uint fixedHeight = 512u;
 
   // User Interface
   void keyPressEvent(QKeyEvent* e);

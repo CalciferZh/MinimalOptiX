@@ -9,16 +9,16 @@ rtDeclareVariable(float3, center,    ,                    );
 
 RT_PROGRAM void sphereIntersect(int) {
   float3 oc = ray.origin - center;
-  float a = dot(ray.direction, ray.direction);
-  float b = dot(oc, ray.direction);
+  float a = 1.f;
+  float b = dot(ray.direction, oc);
   float c = dot(oc, oc) - radius * radius;
-  float discriminant = b * b - a * c;
-  float t;
+  float discriminant = b * b - c;
   if (discriminant < 0) {
     return;
   }
+  float t;
   float squareRoot = sqrt(discriminant);
-  t = (-b - squareRoot) / a;
+  t = -b - squareRoot;
   bool checkSecond = true;
   if (rtPotentialIntersection(t)) {
     if (rtReportIntersection(0)) {
@@ -26,7 +26,7 @@ RT_PROGRAM void sphereIntersect(int) {
     }
   }
   if (checkSecond) {
-    t = (-b + squareRoot) / a;
+    t = -b + squareRoot;
     if (rtPotentialIntersection(t)) {
       rtReportIntersection(0);
     }
@@ -35,6 +35,6 @@ RT_PROGRAM void sphereIntersect(int) {
 
 RT_PROGRAM void sphereBBox(int, float result[6]) {
   Aabb* aabb = (Aabb*)result;
-  aabb->set(radius + center, radius - center);
+  aabb->set(center + radius, center - radius);
 }
 

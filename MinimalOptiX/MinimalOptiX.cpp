@@ -36,15 +36,18 @@ void MinimalOptiX::updateScene() {
   uchar* bufferData = (uchar*)context["outputBuffer"]->getBuffer()->map();
 
   QColor color;
-  for (int i = 0; i < fixedWidth; ++i) {
-    for (int j = 0; j < fixedHeight; ++j) {
-      uchar* src = bufferData + 4 * fixedWidth * j;
+  for (uint i = 0; i < fixedHeight; ++i) {
+    for (uint j = 0; j < fixedWidth; ++j) {
+      uchar* src = bufferData + 4 * (i * fixedWidth + j);
       color.setBlue((int)*(src + 0));
       color.setGreen((int)*(src + 1));
       color.setRed((int)*(src + 2));
-      canvas.setPixelColor(i, fixedHeight - j - 1, color);
+      canvas.setPixelColor(j, fixedHeight - i - 1, color);
     }
   }
+
+  context["outputBuffer"]->getBuffer()->unmap();
+
   QPixmap tmpPixmap = QPixmap::fromImage(canvas);
   scene.clear();
   scene.addPixmap(tmpPixmap);
@@ -65,18 +68,16 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
 
 void MinimalOptiX::setupContext() {
   context = optix::Context::create();
-  context->setRayTypeCount(2);
+  context->setRayTypeCount(1);
   context->setEntryPointCount(1);
   context->setStackSize(9608);
 
   context["maxDepth"]->setInt(128);
   context["rayTypeRadience"]->setUint(0);
-  context["rayTypeShadow"]->setUint(1);
-  context["rayEpsilonT"]->setFloat(1.e-4f);
   context["intensityCutOff"]->setFloat(1.e-2f);
   context["ambientLightColor"]->setFloat(0.31f, 0.31f, 0.31f);
 
-  optix::Buffer outputBuffer = context->createBuffer(context, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
+  optix::Buffer outputBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
   context["outputBuffer"]->set(outputBuffer);
 
   // Exception
@@ -85,9 +86,10 @@ void MinimalOptiX::setupContext() {
   context["badColor"]->setFloat(1.f, 0.f, 0.f);
 
   // Miss
-  optix::Program missProgram = context->createProgramFromPTXString(ptxStrs["MissProgram.cu"], "staticMiss");
+  optix::Program missProgram = context->createProgramFromPTXString(ptxStrs["MissProgram.cu"], "vGradMiss");
   context->setMissProgram(0, missProgram);
-  context["bgColor"]->setFloat(0.34f, 0.55f, 0.85f);
+  context["gradColorMax"]->setFloat(0.5f, 0.7f, 1.f);
+  context["gradColorMin"]->setFloat(1.f, 1.f, 1.f);
 }
 
 void MinimalOptiX::setupScene(SceneNum num) {
@@ -116,17 +118,16 @@ void MinimalOptiX::setupScene(SceneNum num) {
 
     context["topObject"]->set(geoGrp);
 
-
     Camera camera;
-    optix::float3 lookFrom = { 0.f, 1.5f, 1.5f };
+    optix::float3 lookFrom = { 0.f, 0.f, 1.f };
     optix::float3 lookAt = { 0.f, 0.f, -1.f };
     optix::float3 up = { 0.f, 1.f, 0.f };
-    camera.set(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight);
+    camera.set(lookFrom, lookAt, up, 60, (float)fixedWidth / (float)fixedHeight);
     optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs["Camera.cu"], "pinholeCamera");
+    rayGenProgram["rayEpsilonT"]->setFloat(1.e-4f);
     rayGenProgram["origin"]->setFloat(camera.origin);
-    rayGenProgram["u"]->setFloat(camera.u);
-    rayGenProgram["v"]->setFloat(camera.v);
-    rayGenProgram["w"]->setFloat(camera.w);
+    rayGenProgram["horizontal"]->setFloat(camera.horizontal);
+    rayGenProgram["vertical"]->setFloat(camera.vertical);
     rayGenProgram["scrLowerLeftCorner"]->setFloat(camera.lowerLeftCorner);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
