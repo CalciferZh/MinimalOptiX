@@ -81,12 +81,12 @@ void MinimalOptiX::setupContext() {
   context["outputBuffer"]->set(outputBuffer);
 
   // Exception
-  optix::Program exptProgram = context->createProgramFromPTXString(ptxStrs["Exception.cu"], "exception");
+  optix::Program exptProgram = context->createProgramFromPTXString(ptxStrs[exCuFileName], "exception");
   context->setExceptionProgram(0, exptProgram);
   context["badColor"]->setFloat(1.f, 0.f, 0.f);
 
   // Miss
-  optix::Program missProgram = context->createProgramFromPTXString(ptxStrs["MissProgram.cu"], "vGradMiss");
+  optix::Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "vGradMiss");
   context->setMissProgram(0, missProgram);
   context["gradColorMax"]->setFloat(0.5f, 0.7f, 1.f);
   context["gradColorMin"]->setFloat(1.f, 1.f, 1.f);
@@ -94,9 +94,9 @@ void MinimalOptiX::setupContext() {
 
 void MinimalOptiX::setupScene(SceneNum num) {
   if (num == SCENE_0) {
-    optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs["Geometry.cu"], "sphereIntersect");
-    optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs["Geometry.cu"], "sphereBBox");
-    optix::Program staticMtl = context->createProgramFromPTXString(ptxStrs["Material.cu"], "closestHitStatic");
+    optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
+    optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
+    optix::Program staticMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "closestHitStatic");
 
     optix::Geometry sphereMid = context->createGeometry();
     sphereMid->setPrimitiveCount(1u);
@@ -123,7 +123,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     optix::float3 lookAt = { 0.f, 0.f, -1.f };
     optix::float3 up = { 0.f, 1.f, 0.f };
     camera.set(lookFrom, lookAt, up, 60, (float)fixedWidth / (float)fixedHeight);
-    optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs["Camera.cu"], "pinholeCamera");
+    optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["rayEpsilonT"]->setFloat(1.e-4f);
     rayGenProgram["origin"]->setFloat(camera.origin);
     rayGenProgram["horizontal"]->setFloat(camera.horizontal);

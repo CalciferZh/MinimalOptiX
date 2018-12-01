@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Utils.h"
+#include "utils_host.h"
 
 void getStrFromFile(std::string& content, std::string& fileName) {
   std::ifstream file(fileName);

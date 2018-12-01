@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cmath>
-#include "Utility.h"
+#include <optix_world.h>
 
 
 class Camera {

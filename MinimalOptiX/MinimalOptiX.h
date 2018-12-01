@@ -11,8 +11,8 @@
 #include <unordered_map>
 #include <exception>
 #include "ui_MinimalOptiX.h"
-#include "Camera.h"
-#include "Utils.h"
+#include "camera.h"
+#include "utils_host.h"
 
 
 class MinimalOptiX : public QMainWindow {
@@ -34,12 +34,18 @@ public:
 	QGraphicsScene scene;
 	QImage canvas;
   optix::Context context;
-  std::map<std::string, std::string> ptxStrs;
-  std::vector<std::string> cuFiles = { "Camera.cu", "Exception.cu", "Material.cu", "MissProgram.cu", "Geometry.cu" };
 
   // Attributes
   uint fixedWidth = 1024u;
   uint fixedHeight = 512u;
+  std::map<std::string, std::string> ptxStrs;
+
+  std::string camCuFileName = "camera.cu";
+  std::string exCuFileName = "exception.cu";
+  std::string mtlCuFileName = "material.cu";
+  std::string msCuFileName = "miss.cu";
+  std::string geoCuFileName = "Geometry.cu";
+  std::vector<std::string> cuFiles = { camCuFileName, exCuFileName, mtlCuFileName, msCuFileName, geoCuFileName };
 
   // User Interface
   void keyPressEvent(QKeyEvent* e);
