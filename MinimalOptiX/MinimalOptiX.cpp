@@ -103,7 +103,6 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMid->setBoundingBoxProgram(sphereBBox);
     sphereMid["radius"]->setFloat(0.5f);
     sphereMid["center"]->setFloat(0.f, 0.f, -1.f);
-    
     optix::Material sphereMidMtl = context->createMaterial();
     sphereMidMtl->setClosestHitProgram(0, phongMtl);
     sphereMidMtl["mtlColor"]->setFloat(0.1f, 0.2f, 0.5f);
@@ -111,14 +110,30 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMidMtl["Kd"]->setFloat(0.8f, 0.8f, 0.8f);
     sphereMidMtl["Ks"]->setFloat(0.9f, 0.9f, 0.9f);
     sphereMidMtl["phongExp"]->setFloat(88.f);
-
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
-    optix::GeometryGroup geoGrp = context->createGeometryGroup();
-    geoGrp->setChildCount(1);
-    geoGrp->setChild(0, sphereMidGI);
-    geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
+    optix::Geometry sphereBottom = context->createGeometry();
+    sphereBottom->setPrimitiveCount(1u);
+    sphereBottom->setIntersectionProgram(sphereIntersect);
+    sphereBottom->setBoundingBoxProgram(sphereBBox);
+    sphereBottom["radius"]->setFloat(100.f);
+    sphereBottom["center"]->setFloat(0.f, -101.f, -1.f);
+    optix::Material sphereBottomMtl = context->createMaterial();
+    sphereBottomMtl->setClosestHitProgram(0, phongMtl);
+    sphereBottomMtl["mtlColor"]->setFloat(0.8f, 0.8f, 0.f);
+    sphereBottomMtl["Ka"]->setFloat(0.3f, 0.3f, 0.3f);
+    sphereBottomMtl["Kd"]->setFloat(0.8f, 0.8f, 0.8f);
+    sphereBottomMtl["Ks"]->setFloat(0.9f, 0.9f, 0.9f);
+    sphereBottomMtl["phongExp"]->setFloat(88.f);
+    optix::GeometryInstance sphereBottomGI = context->createGeometryInstance(sphereBottom, &sphereBottomMtl, &sphereBottomMtl + 1);
 
+    std::vector<optix::GeometryInstance> objs = { sphereMidGI, sphereBottomGI };
+    optix::GeometryGroup geoGrp = context->createGeometryGroup();
+    geoGrp->setChildCount(objs.size());
+    for (auto i = 0; i < objs.size(); ++i) {
+      geoGrp->setChild(i, objs[i]);
+    }
+    geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
     context["topObject"]->set(geoGrp);
 
     // camera
