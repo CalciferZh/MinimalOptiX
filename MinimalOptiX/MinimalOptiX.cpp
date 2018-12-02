@@ -108,7 +108,9 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMidMtl->setClosestHitProgram(0, phongMtl);
     sphereMidMtl["mtlColor"]->setFloat(0.1f, 0.2f, 0.5f);
     sphereMidMtl["Ka"]->setFloat(0.3f, 0.3f, 0.3f);
-    sphereMidMtl["Kd"]->setFloat(0.5f, 0.5f, 0.5f);
+    sphereMidMtl["Kd"]->setFloat(0.8f, 0.8f, 0.8f);
+    sphereMidMtl["Ks"]->setFloat(0.9f, 0.9f, 0.9f);
+    sphereMidMtl["phongExp"]->setFloat(88.f);
 
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
