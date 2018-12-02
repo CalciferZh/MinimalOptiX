@@ -8,10 +8,13 @@ rtDeclareVariable(Ray, ray, rtCurrentRay, );
 rtDeclareVariable(float, t, rtIntersectionDistance, );
 rtDeclareVariable(float3, geoNormal, attribute geoNormal, );
 rtDeclareVariable(float3, mtlColor, , );
+rtDeclareVariable(float3, Ka, , );
+rtDeclareVariable(float3, Kd, , );
+rtDeclareVariable(float3, envLightColor, , );
 rtBuffer<Light> lights;
 
 RT_PROGRAM void phong() {
-  float3 tmpColor = { 0.f, 0.f, 0.f };
+  float3 tmpColor = Ka * envLightColor;
   for (int i = 0; i < lights.size(); ++i) {
     float3 P = ray.origin + t * ray.direction;
     float3 PtoL = normalize(lights[i].position - P);
@@ -20,6 +23,6 @@ RT_PROGRAM void phong() {
       tmpColor += brightness * lights[i].color;
     }
   }
-  pldR.color *= (tmpColor / lights.size());
+  pldR.color *= tmpColor;
   pldR.color *= mtlColor;
 }

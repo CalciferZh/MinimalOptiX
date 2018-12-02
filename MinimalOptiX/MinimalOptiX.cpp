@@ -72,10 +72,8 @@ void MinimalOptiX::setupContext() {
   context->setEntryPointCount(1);
   context->setStackSize(9608);
 
-  context["maxDepth"]->setInt(128);
   context["rayTypeRadience"]->setUint(0);
-  context["intensityCutOff"]->setFloat(1.e-2f);
-  context["ambientLightColor"]->setFloat(0.31f, 0.31f, 0.31f);
+  context["envLightColor"]->setFloat(1.f, 1.f, 1.f);
 
   optix::Buffer outputBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
   context["outputBuffer"]->set(outputBuffer);
@@ -109,6 +107,8 @@ void MinimalOptiX::setupScene(SceneNum num) {
     optix::Material sphereMidMtl = context->createMaterial();
     sphereMidMtl->setClosestHitProgram(0, phongMtl);
     sphereMidMtl["mtlColor"]->setFloat(0.1f, 0.2f, 0.5f);
+    sphereMidMtl["Ka"]->setFloat(0.3f, 0.3f, 0.3f);
+    sphereMidMtl["Kd"]->setFloat(0.5f, 0.5f, 0.5f);
 
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
@@ -135,7 +135,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
 
     // lights
     Light lights[] = {
-      { optix::make_float3(0.f, 0.f, 1.f), optix::make_float3(1.f, 1.f, 1.f) }
+      { optix::make_float3(1.f, 1.f, 1.f), optix::make_float3(1.f, 1.f, 1.f) }
     };
     optix::Buffer lightBuffer = context->createBuffer(RT_BUFFER_INPUT);
     lightBuffer->setFormat(RT_FORMAT_USER);
