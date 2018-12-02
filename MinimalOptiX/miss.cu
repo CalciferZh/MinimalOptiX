@@ -15,6 +15,7 @@ rtDeclareVariable(float3, gradColorMax, , );
 rtDeclareVariable(float3, gradColorMin, , );
 
 RT_PROGRAM void vGradMiss() {
-  float r = ray.direction.y * 0.5f + 0.5f;
-  pldR.color *= r * gradColorMax + (1 - r) * gradColorMin;
+  pldR.color = make_float3(0.f, 0.f, 0.f);
+  // float r = ray.direction.y * 0.5f + 0.5f;
+  // pldR.color *= r * gradColorMax + (1 - r) * gradColorMin;
 }

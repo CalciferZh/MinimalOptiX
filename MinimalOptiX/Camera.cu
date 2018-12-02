@@ -1,5 +1,6 @@
 #include <optix_world.h>
-#include "Structures.h"
+#include "structures.h"
+#include "utils_device.h"
 
 using namespace optix;
 
@@ -7,7 +8,6 @@ rtDeclareVariable(Ray, ray, rtCurrentRay, );
 rtDeclareVariable(uint2, launchIdx, rtLaunchIndex, );
 rtDeclareVariable(uint2, launchDim, rtLaunchDim, );
 rtDeclareVariable(PayloadRadiance, pldR, rtPayload, );
-
 rtDeclareVariable(uint, rayTypeRadience, , );
 rtDeclareVariable(rtObject, topObject, , );
 rtDeclareVariable(float, rayEpsilonT, , );
@@ -23,13 +23,9 @@ RT_PROGRAM void pinholeCamera() {
   float3 rayDir = normalize(scrLowerLeftCorner + xy.x * horizontal + xy.y * vertical - origin);
   Ray ray(rayOri, rayDir, rayTypeRadience, rayEpsilonT);
   PayloadRadiance pldR;
-  pldR.color = make_float3(1.f);
-  pldR.intensity = 1.f;
+  pldR.color = make_float3(1.f, 1.f, 1.f);
+  pldR.depth = 1;
+  pldR.randSeed = launchIdx.x + launchIdx.y * launchDim.x + 960822;
   rtTrace(topObject, ray, pldR);
-  outputBuffer[launchIdx] = make_uchar4(
-    static_cast<unsigned char>(__saturatef(pldR.color.z)*255.99f),
-    static_cast<unsigned char>(__saturatef(pldR.color.y)*255.99f),
-    static_cast<unsigned char>(__saturatef(pldR.color.x)*255.99f),
-    255u
-  );
+  outputBuffer[launchIdx] = make_color(pldR.color);
 }

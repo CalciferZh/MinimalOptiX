@@ -39,13 +39,16 @@ public:
   // Attributes
   uint fixedWidth = 1024u;
   uint fixedHeight = 512u;
+  uint rayMaxDepth = 64;
+  float rayMinIntensity = 0.01f;
+  float rayEpsilonT = 0.001f;
   std::map<std::string, std::string> ptxStrs;
 
   std::string camCuFileName = "camera.cu";
   std::string exCuFileName = "exception.cu";
   std::string mtlCuFileName = "material.cu";
   std::string msCuFileName = "miss.cu";
-  std::string geoCuFileName = "Geometry.cu";
+  std::string geoCuFileName = "geometry.cu";
   std::vector<std::string> cuFiles = { camCuFileName, exCuFileName, mtlCuFileName, msCuFileName, geoCuFileName };
 
   // User Interface

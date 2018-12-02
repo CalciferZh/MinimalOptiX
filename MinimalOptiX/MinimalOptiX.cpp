@@ -73,7 +73,10 @@ void MinimalOptiX::setupContext() {
   context->setStackSize(9608);
 
   context["rayTypeRadience"]->setUint(0);
-  context["envLightColor"]->setFloat(1.f, 1.f, 1.f);
+  context["rayMaxDepth"]->setUint(rayMaxDepth);
+  context["rayMinIntensity"]->setFloat(rayMinIntensity);
+  context["rayEpsilonT"]->setFloat(rayEpsilonT);
+
 
   optix::Buffer outputBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
   context["outputBuffer"]->set(outputBuffer);
@@ -97,7 +100,8 @@ void MinimalOptiX::setupScene(SceneNum num) {
     optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
     optix::Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
     optix::Program quadBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadBBox");
-    optix::Program phongMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "phong");
+    optix::Program lambMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "lambertian");
+    optix::Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
 
     optix::Geometry sphereMid = context->createGeometry();
     sphereMid->setPrimitiveCount(1u);
@@ -106,21 +110,18 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMid["radius"]->setFloat(0.5f);
     sphereMid["center"]->setFloat(0.f, 0.f, -1.f);
     optix::Material sphereMidMtl = context->createMaterial();
-    sphereMidMtl->setClosestHitProgram(0, phongMtl);
+    sphereMidMtl->setClosestHitProgram(0, lambMtl);
     sphereMidMtl["mtlColor"]->setFloat(0.1f, 0.2f, 0.5f);
-    sphereMidMtl["Ka"]->setFloat(0.3f, 0.3f, 0.3f);
-    sphereMidMtl["Kd"]->setFloat(0.8f, 0.8f, 0.8f);
-    sphereMidMtl["Ks"]->setFloat(0.9f, 0.9f, 0.9f);
-    sphereMidMtl["phongExp"]->setFloat(88.f);
+    sphereMidMtl["nScatter"]->setFloat(4.f);
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
     optix::Geometry quadFloor = context->createGeometry();
     quadFloor->setPrimitiveCount(1u);
     quadFloor->setIntersectionProgram(quadIntersect);
     quadFloor->setBoundingBoxProgram(quadBBox);
-    optix::float3 anchor = { -100.f, -1.f, 100.f };
-    optix::float3 v2 = { 0.f, 0.f, -200.f };
-    optix::float3 v1 = { 200.f, 0.f, 0.f };
+    optix::float3 anchor = { -100.f, -0.5f, 100.f };
+    optix::float3 v1 = { 0.f, 0.f, -200.f };
+    optix::float3 v2 = { 200.f, 0.f, 0.f };
     optix::float3 normal = normalize(optix::cross(v2, v1));
     float d = dot(normal, anchor);
     v1 /= dot(v1, v1);
@@ -131,15 +132,33 @@ void MinimalOptiX::setupScene(SceneNum num) {
     quadFloor["plane"]->setFloat(plane);
     quadFloor["anchor"]->setFloat(anchor);
     optix::Material quadFloorMtl = context->createMaterial();
-    quadFloorMtl->setClosestHitProgram(0, phongMtl);
+    quadFloorMtl->setClosestHitProgram(0, lambMtl);
     quadFloorMtl["mtlColor"]->setFloat(0.8f, 0.8f, 0.f);
-    quadFloorMtl["Ka"]->setFloat(0.7f, 0.7f, 0.7f);
-    quadFloorMtl["Kd"]->setFloat(0.8f, 0.8f, 0.8f);
-    quadFloorMtl["Ks"]->setFloat(0.9f, 0.9f, 0.9f);
-    quadFloorMtl["phongExp"]->setFloat(88.f);
+    sphereMidMtl["nScatter"]->setFloat(4.f);
     optix::GeometryInstance quadFloorGI = context->createGeometryInstance(quadFloor, &quadFloorMtl, &quadFloorMtl + 1);
 
-    std::vector<optix::GeometryInstance> objs = { sphereMidGI, quadFloorGI };
+    optix::Geometry quadLight = context->createGeometry();
+    quadLight->setPrimitiveCount(1u);
+    quadLight->setIntersectionProgram(quadIntersect);
+    quadLight->setBoundingBoxProgram(quadBBox);
+    anchor = { -5.f, 5.f, 5.f };
+    v1 = { 0.f, 0.f, -10.f };
+    v2 = { 10.f, 0.f, 0.f };
+    normal = normalize(optix::cross(v2, v1));
+    d = dot(normal, anchor);
+    v1 /= dot(v1, v1);
+    v2 /= dot(v2, v2);
+    plane = make_float4(normal, d);
+    quadLight["v1"]->setFloat(v1);
+    quadLight["v2"]->setFloat(v2);
+    quadLight["plane"]->setFloat(plane);
+    quadLight["anchor"]->setFloat(anchor);
+    optix::Material quadLightMtl = context->createMaterial();
+    quadLightMtl->setClosestHitProgram(0, lightMtl);
+    quadLightMtl["lightColor"]->setFloat(1.f, 1.f, 1.f);
+    optix::GeometryInstance quadLightGI = context->createGeometryInstance(quadLight, &quadLightMtl, &quadLightMtl + 1);
+
+    std::vector<optix::GeometryInstance> objs = { sphereMidGI, quadFloorGI, quadLightGI };
     optix::GeometryGroup geoGrp = context->createGeometryGroup();
     geoGrp->setChildCount(uint(objs.size()));
     for (auto i = 0; i < objs.size(); ++i) {
@@ -155,23 +174,10 @@ void MinimalOptiX::setupScene(SceneNum num) {
     optix::float3 up = { 0.f, 1.f, 0.f };
     camera.set(lookFrom, lookAt, up, 60, (float)fixedWidth / (float)fixedHeight);
     optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
-    rayGenProgram["rayEpsilonT"]->setFloat(1.e-4f);
     rayGenProgram["origin"]->setFloat(camera.origin);
     rayGenProgram["horizontal"]->setFloat(camera.horizontal);
     rayGenProgram["vertical"]->setFloat(camera.vertical);
     rayGenProgram["scrLowerLeftCorner"]->setFloat(camera.lowerLeftCorner);
     context->setRayGenerationProgram(0, rayGenProgram);
-
-    // lights
-    Light lights[] = {
-      { optix::make_float3(1.f, 1.f, 1.f), optix::make_float3(1.f, 1.f, 1.f) }
-    };
-    optix::Buffer lightBuffer = context->createBuffer(RT_BUFFER_INPUT);
-    lightBuffer->setFormat(RT_FORMAT_USER);
-    lightBuffer->setElementSize(sizeof(Light));
-    lightBuffer->setSize(sizeof(lights) / sizeof(Light));
-    memcpy(lightBuffer->map(), lights, sizeof(lights));
-    lightBuffer->unmap();
-    context["lights"]->set(lightBuffer);
   }
 }

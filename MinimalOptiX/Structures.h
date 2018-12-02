@@ -2,10 +2,10 @@
 
 struct PayloadRadiance {
   optix::float3 color;
-  float intensity;
+  float depth;
+  int randSeed;
 };
 
 struct Light {
-  optix::float3 position;
   optix::float3 color;
 };
