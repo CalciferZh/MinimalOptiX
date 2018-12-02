@@ -139,13 +139,11 @@ advapi32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;%(AdditionalDe
     <QtRcc Include="MinimalOptiX.qrc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="camera.h" />
     <QtMoc Include="minimalOptiX.h" />
     <ClInclude Include="structures.h" />
     <ClInclude Include="utils_host.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="camera.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="minimalOptiX.cpp" />
     <ClCompile Include="utils_host.cpp" />

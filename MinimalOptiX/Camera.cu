@@ -5,27 +5,30 @@
 using namespace optix;
 
 rtDeclareVariable(Ray, ray, rtCurrentRay, );
+rtDeclareVariable(rtObject, topObject, , );
+rtDeclareVariable(Payload, pld, rtPayload, );
+rtDeclareVariable(uint, rayTypeRadiance, , );
 rtDeclareVariable(uint2, launchIdx, rtLaunchIndex, );
 rtDeclareVariable(uint2, launchDim, rtLaunchDim, );
-rtDeclareVariable(PayloadRadiance, pldR, rtPayload, );
-rtDeclareVariable(uint, rayTypeRadience, , );
-rtDeclareVariable(rtObject, topObject, , );
 rtDeclareVariable(float, rayEpsilonT, , );
-rtDeclareVariable(float3, origin, , );
-rtDeclareVariable(float3, horizontal, , );
-rtDeclareVariable(float3, vertical, , );
-rtDeclareVariable(float3, scrLowerLeftCorner, , );
+
+rtDeclareVariable(CamParams, camParams, , );
 rtBuffer<uchar4, 2> outputBuffer;
 
 RT_PROGRAM void pinholeCamera() {
   float2 xy = make_float2(launchIdx) / make_float2(launchDim);
-  float3 rayOri = origin;
-  float3 rayDir = normalize(scrLowerLeftCorner + xy.x * horizontal + xy.y * vertical - origin);
-  Ray ray(rayOri, rayDir, rayTypeRadience, rayEpsilonT);
-  PayloadRadiance pldR;
-  pldR.color = make_float3(1.f, 1.f, 1.f);
-  pldR.depth = 1;
-  pldR.randSeed = launchIdx.x + launchIdx.y * launchDim.x + 960822;
-  rtTrace(topObject, ray, pldR);
-  outputBuffer[launchIdx] = make_color(pldR.color);
+  float3 rayOri = camParams.origin;
+  float3 rayDir = normalize(
+    camParams.srcLowerLeftCorner + \
+    xy.x * camParams.horizontal + \
+    xy.y * camParams.vertical - \
+    camParams.origin
+  );
+  Ray ray(rayOri, rayDir, rayTypeRadiance, rayEpsilonT);
+  Payload pld;
+  pld.color = make_float3(1.f, 1.f, 1.f);
+  pld.depth = 1;
+  pld.randSeed = launchIdx.x + launchIdx.y * launchDim.x + 960822;
+  rtTrace(topObject, ray, pld);
+  outputBuffer[launchIdx] = make_color(pld.color);
 }

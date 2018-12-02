@@ -11,7 +11,6 @@
 #include <unordered_map>
 #include <exception>
 #include "ui_MinimalOptiX.h"
-#include "camera.h"
 #include "utils_host.h"
 #include "structures.h"
 
