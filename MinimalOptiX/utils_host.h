@@ -13,3 +13,6 @@ void getStrFromFile(std::string& content, std::string& fileName);
 void getPtxStrFromCuStr(std::string& cuStr, std::string& ptxStr, std::string& fileName);
 
 void cuFileToPtxStr(std::string& fileName, std::string& ptxStr);
+
+optix::Geometry createSphere(optix::float3 center, float radius);
+

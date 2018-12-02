@@ -95,6 +95,8 @@ void MinimalOptiX::setupScene(SceneNum num) {
     // objects
     optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
     optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
+    optix::Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
+    optix::Program quadBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadBBox");
     optix::Program phongMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "phong");
 
     optix::Geometry sphereMid = context->createGeometry();
@@ -112,24 +114,34 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMidMtl["phongExp"]->setFloat(88.f);
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
-    optix::Geometry sphereBottom = context->createGeometry();
-    sphereBottom->setPrimitiveCount(1u);
-    sphereBottom->setIntersectionProgram(sphereIntersect);
-    sphereBottom->setBoundingBoxProgram(sphereBBox);
-    sphereBottom["radius"]->setFloat(100.f);
-    sphereBottom["center"]->setFloat(0.f, -101.f, -1.f);
-    optix::Material sphereBottomMtl = context->createMaterial();
-    sphereBottomMtl->setClosestHitProgram(0, phongMtl);
-    sphereBottomMtl["mtlColor"]->setFloat(0.8f, 0.8f, 0.f);
-    sphereBottomMtl["Ka"]->setFloat(0.3f, 0.3f, 0.3f);
-    sphereBottomMtl["Kd"]->setFloat(0.8f, 0.8f, 0.8f);
-    sphereBottomMtl["Ks"]->setFloat(0.9f, 0.9f, 0.9f);
-    sphereBottomMtl["phongExp"]->setFloat(88.f);
-    optix::GeometryInstance sphereBottomGI = context->createGeometryInstance(sphereBottom, &sphereBottomMtl, &sphereBottomMtl + 1);
+    optix::Geometry quadFloor = context->createGeometry();
+    quadFloor->setPrimitiveCount(1u);
+    quadFloor->setIntersectionProgram(quadIntersect);
+    quadFloor->setBoundingBoxProgram(quadBBox);
+    optix::float3 anchor = { -100.f, -1.f, 100.f };
+    optix::float3 v2 = { 0.f, 0.f, -200.f };
+    optix::float3 v1 = { 200.f, 0.f, 0.f };
+    optix::float3 normal = normalize(optix::cross(v2, v1));
+    float d = dot(normal, anchor);
+    v1 /= dot(v1, v1);
+    v2 /= dot(v2, v2);
+    optix::float4 plane = make_float4(normal, d);
+    quadFloor["v1"]->setFloat(v1);
+    quadFloor["v2"]->setFloat(v2);
+    quadFloor["plane"]->setFloat(plane);
+    quadFloor["anchor"]->setFloat(anchor);
+    optix::Material quadFloorMtl = context->createMaterial();
+    quadFloorMtl->setClosestHitProgram(0, phongMtl);
+    quadFloorMtl["mtlColor"]->setFloat(0.8f, 0.8f, 0.f);
+    quadFloorMtl["Ka"]->setFloat(0.7f, 0.7f, 0.7f);
+    quadFloorMtl["Kd"]->setFloat(0.8f, 0.8f, 0.8f);
+    quadFloorMtl["Ks"]->setFloat(0.9f, 0.9f, 0.9f);
+    quadFloorMtl["phongExp"]->setFloat(88.f);
+    optix::GeometryInstance quadFloorGI = context->createGeometryInstance(quadFloor, &quadFloorMtl, &quadFloorMtl + 1);
 
-    std::vector<optix::GeometryInstance> objs = { sphereMidGI, sphereBottomGI };
+    std::vector<optix::GeometryInstance> objs = { sphereMidGI, quadFloorGI };
     optix::GeometryGroup geoGrp = context->createGeometryGroup();
-    geoGrp->setChildCount(objs.size());
+    geoGrp->setChildCount(uint(objs.size()));
     for (auto i = 0; i < objs.size(); ++i) {
       geoGrp->setChild(i, objs[i]);
     }
