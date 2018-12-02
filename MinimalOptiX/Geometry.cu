@@ -2,10 +2,10 @@
 
 using namespace optix;
 
-rtDeclareVariable(Ray,    ray,       rtCurrentRay,        );
-rtDeclareVariable(float,  radius,    ,                    );
+rtDeclareVariable(Ray, ray, rtCurrentRay, );
+rtDeclareVariable(float, radius, , );
 rtDeclareVariable(float3, geoNormal, attribute geoNormal, );
-rtDeclareVariable(float3, center,    ,                    );
+rtDeclareVariable(float3, center, , );
 
 RT_PROGRAM void sphereIntersect(int) {
   float3 oc = ray.origin - center;
@@ -21,6 +21,7 @@ RT_PROGRAM void sphereIntersect(int) {
   t = -b - squareRoot;
   bool checkSecond = true;
   if (rtPotentialIntersection(t)) {
+    geoNormal = normalize(ray.origin + t * ray.direction - center);
     if (rtReportIntersection(0)) {
       checkSecond = false;
     }
@@ -28,6 +29,7 @@ RT_PROGRAM void sphereIntersect(int) {
   if (checkSecond) {
     t = -b + squareRoot;
     if (rtPotentialIntersection(t)) {
+      geoNormal = normalize(ray.origin + t * ray.direction - center);
       rtReportIntersection(0);
     }
   }

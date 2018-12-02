@@ -25,7 +25,6 @@ RT_PROGRAM void pinholeCamera() {
   PayloadRadiance pldR;
   pldR.color = make_float3(1.f);
   pldR.intensity = 1.f;
-  pldR.depth = 0;
   rtTrace(topObject, ray, pldR);
   outputBuffer[launchIdx] = make_uchar4(
     static_cast<unsigned char>(__saturatef(pldR.color.z)*255.99f),

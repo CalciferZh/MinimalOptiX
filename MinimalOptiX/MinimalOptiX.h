@@ -13,6 +13,7 @@
 #include "ui_MinimalOptiX.h"
 #include "camera.h"
 #include "utils_host.h"
+#include "structures.h"
 
 
 class MinimalOptiX : public QMainWindow {
@@ -26,9 +27,9 @@ public:
 
 	// Utilities
   void compilePtx();
-	void updateScene();
-  void setupContext();
   void setupScene(SceneNum num);
+  void setupContext();
+	void update();
 
 	// Components
 	QGraphicsScene scene;

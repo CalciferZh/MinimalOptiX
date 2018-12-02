@@ -20,7 +20,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   setupScene(SCENE_0);
   context->validate();
   context->launch(0, fixedWidth, fixedHeight);
-  updateScene();
+  update();
 }
 
 void MinimalOptiX::compilePtx() {
@@ -32,7 +32,7 @@ void MinimalOptiX::compilePtx() {
   }
 }
 
-void MinimalOptiX::updateScene() {
+void MinimalOptiX::update() {
   uchar* bufferData = (uchar*)context["outputBuffer"]->getBuffer()->map();
 
   QColor color;
@@ -94,9 +94,10 @@ void MinimalOptiX::setupContext() {
 
 void MinimalOptiX::setupScene(SceneNum num) {
   if (num == SCENE_0) {
+    // objects
     optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
     optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
-    optix::Program staticMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "closestHitStatic");
+    optix::Program phongMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "phong");
 
     optix::Geometry sphereMid = context->createGeometry();
     sphereMid->setPrimitiveCount(1u);
@@ -106,7 +107,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMid["center"]->setFloat(0.f, 0.f, -1.f);
     
     optix::Material sphereMidMtl = context->createMaterial();
-    sphereMidMtl->setClosestHitProgram(0, staticMtl);
+    sphereMidMtl->setClosestHitProgram(0, phongMtl);
     sphereMidMtl["mtlColor"]->setFloat(0.1f, 0.2f, 0.5f);
 
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
@@ -118,6 +119,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
 
     context["topObject"]->set(geoGrp);
 
+    // camera
     Camera camera;
     optix::float3 lookFrom = { 0.f, 0.f, 1.f };
     optix::float3 lookAt = { 0.f, 0.f, -1.f };
@@ -130,5 +132,17 @@ void MinimalOptiX::setupScene(SceneNum num) {
     rayGenProgram["vertical"]->setFloat(camera.vertical);
     rayGenProgram["scrLowerLeftCorner"]->setFloat(camera.lowerLeftCorner);
     context->setRayGenerationProgram(0, rayGenProgram);
+
+    // lights
+    Light lights[] = {
+      { optix::make_float3(0.f, 0.f, 1.f), optix::make_float3(1.f, 1.f, 1.f) }
+    };
+    optix::Buffer lightBuffer = context->createBuffer(RT_BUFFER_INPUT);
+    lightBuffer->setFormat(RT_FORMAT_USER);
+    lightBuffer->setElementSize(sizeof(Light));
+    lightBuffer->setSize(sizeof(lights) / sizeof(Light));
+    memcpy(lightBuffer->map(), lights, sizeof(lights));
+    lightBuffer->unmap();
+    context["lights"]->set(lightBuffer);
   }
 }

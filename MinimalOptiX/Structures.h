@@ -3,5 +3,9 @@
 struct PayloadRadiance {
   optix::float3 color;
   float intensity;
-  int depth;
+};
+
+struct Light {
+  optix::float3 position;
+  optix::float3 color;
 };
