@@ -27,6 +27,9 @@ RT_PROGRAM void lambertian() {
   }
   float3 P = ray.origin + t * ray.direction;
   int nNewRay = lambParams.nScatter / pld.depth + 1;
+  if (pld.depth > lambParams.scatterMaxDepth) {
+    nNewRay = 1;
+  }
   float3 tmpColor = { 0.f, 0.f, 0.f };
   for (int i = 0; i < nNewRay; ++i) {
     float3 rayOrigin = P;

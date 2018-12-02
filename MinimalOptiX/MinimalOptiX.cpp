@@ -90,7 +90,7 @@ void MinimalOptiX::setupContext() {
   // Miss
   optix::Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
   context->setMissProgram(0, missProgram);
-  missProgram["bgColor"]->setFloat(0.3f, 0.3f, 0.3f);
+  missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
 }
 
 void MinimalOptiX::setupScene(SceneNum num) {
@@ -111,7 +111,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMid["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
     optix::Material sphereMidMtl = context->createMaterial();
     sphereMidMtl->setClosestHitProgram(0, lambMtl);
-    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, 4 };
+    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, 128, 1 };
     sphereMidMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
@@ -128,7 +128,8 @@ void MinimalOptiX::setupScene(SceneNum num) {
     optix::Material quadFloorMtl = context->createMaterial();
     quadFloorMtl->setClosestHitProgram(0, lambMtl);
     lambParams.albedo = optix::make_float3(0.8f, 0.8f, 0.f);
-    lambParams.nScatter = 4;
+    lambParams.nScatter = 128;
+    lambParams.scatterMaxDepth = 1;
     quadFloorMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
     optix::GeometryInstance quadFloorGI = context->createGeometryInstance(quadFloor, &quadFloorMtl, &quadFloorMtl + 1);
 
