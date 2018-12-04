@@ -38,7 +38,7 @@ public:
   // Attributes
   uint fixedWidth = 1024u;
   uint fixedHeight = 512u;
-  uint nSuperSampling = 32u;
+  uint nSuperSampling = 16u;
   uint rayMaxDepth = 64;
   float rayMinIntensity = 0.01f;
   float rayEpsilonT = 0.01f;
