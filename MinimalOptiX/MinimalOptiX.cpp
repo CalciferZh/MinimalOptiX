@@ -77,6 +77,7 @@ void MinimalOptiX::setupContext() {
   context["rayMinIntensity"]->setFloat(rayMinIntensity);
   context["rayEpsilonT"]->setFloat(rayEpsilonT);
   context["absorbColor"]->setFloat(0.f, 0.f, 0.f);
+  context["nSuperSampling"]->setUint(nSuperSampling);
 
 
   optix::Buffer outputBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
@@ -113,7 +114,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMid["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
     optix::Material sphereMidMtl = context->createMaterial();
     sphereMidMtl->setClosestHitProgram(0, lambMtl);
-    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, 128, 1 };
+    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, 32, 1 };
     sphereMidMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
@@ -137,7 +138,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereLeft["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
     optix::Material sphereLeftMtl = context->createMaterial();
     sphereLeftMtl->setClosestHitProgram(0, glassMtl);
-    GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f, 128, 1 };
+    GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f, 32, 1 };
     sphereLeftMtl["glassParams"]->setUserData(sizeof(glassParams), &glassParams);
     optix::GeometryInstance sphereLeftGI = context->createGeometryInstance(sphereLeft, &sphereLeftMtl, &sphereLeftMtl + 1);
 

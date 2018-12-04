@@ -8,6 +8,7 @@ rtDeclareVariable(Ray, ray, rtCurrentRay, );
 rtDeclareVariable(rtObject, topObject, , );
 rtDeclareVariable(Payload, pld, rtPayload, );
 rtDeclareVariable(uint, rayTypeRadiance, , );
+rtDeclareVariable(uint, nSuperSampling, , );
 rtDeclareVariable(uint2, launchIdx, rtLaunchIndex, );
 rtDeclareVariable(uint2, launchDim, rtLaunchDim, );
 rtDeclareVariable(float, rayEpsilonT, , );
@@ -16,19 +17,29 @@ rtDeclareVariable(CamParams, camParams, , );
 rtBuffer<uchar4, 2> outputBuffer;
 
 RT_PROGRAM void pinholeCamera() {
-  float2 xy = make_float2(launchIdx) / make_float2(launchDim);
-  float3 rayOri = camParams.origin;
-  float3 rayDir = normalize(
-    camParams.srcLowerLeftCorner + \
-    xy.x * camParams.horizontal + \
-    xy.y * camParams.vertical - \
-    camParams.origin
-  );
-  Ray ray(rayOri, rayDir, rayTypeRadiance, rayEpsilonT);
+  float3 accu = make_float3(0.f, 0.f, 0.f);
+  Ray ray;
+  ray.origin = camParams.origin;
+  ray.ray_type = rayTypeRadiance;
+  ray.tmin = rayEpsilonT;
+  ray.tmax = RT_DEFAULT_MAX;
   Payload pld;
-  pld.color = make_float3(1.f, 1.f, 1.f);
   pld.depth = 1;
-  pld.randSeed = launchIdx.x + launchIdx.y * launchDim.x + 960822;
-  rtTrace(topObject, ray, pld);
-  outputBuffer[launchIdx] = make_color(pld.color);
+  float2 unit = 1 / make_float2(launchDim);
+  float2 xy = make_float2(launchIdx) * unit;
+  for (int i = 0; i < nSuperSampling; ++i) {
+    pld.randSeed = i * launchDim.x * launchDim.y + \
+                   launchIdx.x * launchDim.y + launchIdx.y + 960822;
+    pld.color = make_float3(1.f, 1.f, 1.f);
+    ray.direction = normalize(
+      camParams.srcLowerLeftCorner + \
+      (xy.x + (rand(pld.randSeed) - 0.5) * unit.x) * camParams.horizontal + \
+      (xy.y + (rand(pld.randSeed) - 0.5) * unit.y) * camParams.vertical - \
+      camParams.origin
+    );
+    rtTrace(topObject, ray, pld);
+    accu += pld.color;
+  }
+  accu /= (float)nSuperSampling;
+  outputBuffer[launchIdx] = make_color(accu);
 }
