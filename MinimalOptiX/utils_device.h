@@ -36,3 +36,19 @@ static __device__ __inline__ float3 randInUnitSphere(int& seed) {
 static __device__ __inline__ float3 reflect(float3& v, float3& n) {
   return (v - 2 * dot(v, n) * n);
 }
+
+static __device__ __inline__ bool refract(float3& v, float3& n, float refRatio, float3& refracted) {
+  float dt = dot(v, n);
+  float discriminant = 1.0 - refRatio * refRatio * (1 - dt * dt);
+  if (discriminant > 0) {
+    refracted = refRatio * (v - n * dt) - n * sqrt(discriminant);
+    return true;
+  }
+  return false;
+}
+
+static __device__ __inline__ float schlick(float cosine, float refIdx) {
+  float r = (1 - refIdx) / (1 + refIdx);
+  r *= r;
+  return r + (1 - r) * powf((1 - cosine), 5.f);
+}

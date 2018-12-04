@@ -37,3 +37,10 @@ struct MetalParams {
   optix::float3 albedo;
   float fuzz;
 };
+
+struct GlassParams {
+  optix::float3 albedo;
+  float refIdx;
+  int nScatter;
+  int scatterMaxDepth;
+};

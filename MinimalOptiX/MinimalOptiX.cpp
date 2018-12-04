@@ -103,6 +103,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     optix::Program lambMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "lambertian");
     optix::Program metalMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "metal");
     optix::Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
+    optix::Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
 
     optix::Geometry sphereMid = context->createGeometry();
     sphereMid->setPrimitiveCount(1u);
@@ -127,6 +128,18 @@ void MinimalOptiX::setupScene(SceneNum num) {
     MetalParams metalParams = { {0.8f, 0.6f, 0.2f}, 0.f };
     sphereRightMtl["metalParams"]->setUserData(sizeof(MetalParams), &metalParams);
     optix::GeometryInstance sphereRightGI = context->createGeometryInstance(sphereRight, &sphereRightMtl, &sphereRightMtl + 1);
+
+    optix::Geometry sphereLeft = context->createGeometry();
+    sphereLeft->setPrimitiveCount(1u);
+    sphereLeft->setIntersectionProgram(sphereIntersect);
+    sphereLeft->setBoundingBoxProgram(sphereBBox);
+    sphereParams.center = optix::make_float3(-1.f, 0.f, -1.f);
+    sphereLeft["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
+    optix::Material sphereLeftMtl = context->createMaterial();
+    sphereLeftMtl->setClosestHitProgram(0, glassMtl);
+    GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f, 128, 1 };
+    sphereLeftMtl["glassParams"]->setUserData(sizeof(glassParams), &glassParams);
+    optix::GeometryInstance sphereLeftGI = context->createGeometryInstance(sphereLeft, &sphereLeftMtl, &sphereLeftMtl + 1);
 
     optix::Geometry quadFloor = context->createGeometry();
     quadFloor->setPrimitiveCount(1u);
@@ -159,7 +172,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     quadLightMtl["lightColor"]->setFloat(1.f, 1.f, 1.f);
     optix::GeometryInstance quadLightGI = context->createGeometryInstance(quadLight, &quadLightMtl, &quadLightMtl + 1);
 
-    std::vector<optix::GeometryInstance> objs = { sphereMidGI, quadFloorGI, quadLightGI, sphereRightGI };
+    std::vector<optix::GeometryInstance> objs = { sphereMidGI, quadFloorGI, quadLightGI, sphereRightGI, sphereLeftGI };
     optix::GeometryGroup geoGrp = context->createGeometryGroup();
     geoGrp->setChildCount(uint(objs.size()));
     for (auto i = 0; i < objs.size(); ++i) {
@@ -170,7 +183,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
 
     // camera
     CamParams camParams;
-    optix::float3 lookFrom = { 0.f, 2.f, 2.f };
+    optix::float3 lookFrom = { 0.f, 1.f, 2.f };
     optix::float3 lookAt = { 0.f, 0.f, -1.f };
     optix::float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);

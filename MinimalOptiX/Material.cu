@@ -25,7 +25,7 @@ RT_PROGRAM void lambertian() {
     pld.color = absorbColor;
     return;
   }
-  int nNewRay = lambParams.nScatter / pld.depth + 1;
+  int nNewRay = lambParams.nScatter;
   if (pld.depth > lambParams.scatterMaxDepth) {
     nNewRay = 1;
   }
@@ -38,7 +38,7 @@ RT_PROGRAM void lambertian() {
   Payload newPld;
   newPld.depth = pld.depth + 1;
   for (int i = 0; i < nNewRay; ++i) {
-    newRay.direction = geoNormal + randInUnitSphere(pld.randSeed);
+    newRay.direction = normalize(geoNormal + randInUnitSphere(pld.randSeed));
     newPld.color = make_float3(1.f, 1.f, 1.f);
     newPld.randSeed = pld.randSeed + newPld.depth * i;
     rtTrace(topObject, newRay, newPld);
@@ -60,7 +60,7 @@ RT_PROGRAM void metal() {
   }
   Ray newRay;
   newRay.origin = ray.origin + t * ray.direction;
-  newRay.direction = reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(pld.randSeed);
+  newRay.direction = normalize(reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(pld.randSeed));
   newRay.ray_type = rayTypeRadiance;
   newRay.tmin = rayEpsilonT;
   newRay.tmax = RT_DEFAULT_MAX;
@@ -71,6 +71,67 @@ RT_PROGRAM void metal() {
   rtTrace(topObject, newRay, newPld);
   pld.color *= newPld.color;
   pld.color *= metalParams.albedo;
+}
+
+// ====================== glass ==========================
+
+rtDeclareVariable(GlassParams, glassParams, , );
+
+RT_PROGRAM void glass() {
+  if (pld.depth > rayMaxDepth || length(pld.color) < rayMinIntensity) {
+    pld.color = absorbColor;
+    return;
+  }
+
+  float3 reflected = reflect(ray.direction, geoNormal);
+  float3 outwardNormal;
+  float realRefIdx;
+  float cosine;
+  if (dot(ray.direction, geoNormal) > 0) {
+    outwardNormal = -geoNormal;
+    realRefIdx = glassParams.refIdx;
+    cosine = dot(ray.direction, geoNormal);
+    cosine = sqrt(1 - glassParams.refIdx * glassParams.refIdx * (1 - cosine * cosine));
+  } else {
+    outwardNormal = geoNormal;
+    realRefIdx = 1.f / glassParams.refIdx;
+    cosine = dot(-ray.direction, geoNormal);
+  }
+  float3 refracted;
+  float reflectProb;
+  int nNewRay;
+  if (refract(ray.direction, outwardNormal, realRefIdx, refracted)) {
+    reflectProb = schlick(cosine, glassParams.refIdx);
+    nNewRay = glassParams.nScatter;
+  } else {
+    reflectProb = 1.f;
+    nNewRay = 1;
+  }
+  if (pld.depth > glassParams.scatterMaxDepth) {
+    nNewRay = 1;
+  }
+  Ray newRay;
+  newRay.origin = ray.origin + t * ray.direction;
+  newRay.ray_type = rayTypeRadiance;
+  newRay.tmin = rayEpsilonT;
+  newRay.tmax = RT_DEFAULT_MAX;
+  Payload newPld;
+  newPld.depth = pld.depth + 1;
+  float3 tmpColor = { 0.f, 0.f, 0.f };
+  for (int i = 0; i < nNewRay; ++i) {
+    if (rand(pld.randSeed) < reflectProb) {
+      newRay.direction = reflected;
+    } else {
+      newRay.direction = refracted;
+    }
+    newPld.color = make_float3(1.f, 1.f, 1.f);
+    newPld.randSeed = pld.randSeed + newPld.depth * i;
+    rtTrace(topObject, newRay, newPld);
+    tmpColor += newPld.color;
+  }
+  tmpColor /= nNewRay;
+  pld.color *= tmpColor;
+  pld.color *= glassParams.albedo;
 }
 
 // ====================== light ==========================
