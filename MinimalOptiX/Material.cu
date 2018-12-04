@@ -25,19 +25,21 @@ RT_PROGRAM void lambertian() {
     pld.color = absorbColor;
     return;
   }
-  float3 P = ray.origin + t * ray.direction;
   int nNewRay = lambParams.nScatter / pld.depth + 1;
   if (pld.depth > lambParams.scatterMaxDepth) {
     nNewRay = 1;
   }
   float3 tmpColor = { 0.f, 0.f, 0.f };
+  Ray newRay;
+  newRay.origin = ray.origin + t * ray.direction;
+  newRay.ray_type = rayTypeRadiance;
+  newRay.tmin = rayEpsilonT;
+  newRay.tmax = RT_DEFAULT_MAX;
+  Payload newPld;
+  newPld.depth = pld.depth + 1;
   for (int i = 0; i < nNewRay; ++i) {
-    float3 rayOrigin = P;
-    float3 rayDirection = geoNormal + randInUnitSphere(pld.randSeed);
-    Ray newRay(rayOrigin, rayDirection, rayTypeRadiance, rayEpsilonT);
-    Payload newPld;
+    newRay.direction = geoNormal + randInUnitSphere(pld.randSeed);
     newPld.color = make_float3(1.f, 1.f, 1.f);
-    newPld.depth = pld.depth + 1;
     newPld.randSeed = pld.randSeed + newPld.depth * i;
     rtTrace(topObject, newRay, newPld);
     tmpColor += newPld.color;
@@ -56,9 +58,12 @@ RT_PROGRAM void metal() {
     pld.color = absorbColor;
     return;
   }
-  float3 rayOrigin = ray.origin + t * ray.direction;
-  float3 rayDirection = reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(pld.randSeed);
-  Ray newRay(rayOrigin, rayDirection, rayTypeRadiance, rayEpsilonT);
+  Ray newRay;
+  newRay.origin = ray.origin + t * ray.direction;
+  newRay.direction = reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(pld.randSeed);
+  newRay.ray_type = rayTypeRadiance;
+  newRay.tmin = rayEpsilonT;
+  newRay.tmax = RT_DEFAULT_MAX;
   Payload newPld;
   newPld.color = make_float3(1.f, 1.f, 1.f);
   newPld.depth = pld.depth + 1;
