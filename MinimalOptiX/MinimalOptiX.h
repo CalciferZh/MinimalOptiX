@@ -40,7 +40,7 @@ public:
   uint fixedHeight = 512u;
   uint rayMaxDepth = 64;
   float rayMinIntensity = 0.01f;
-  float rayEpsilonT = 0.001f;
+  float rayEpsilonT = 0.01f;
   std::map<std::string, std::string> ptxStrs;
 
   std::string camCuFileName = "camera.cu";

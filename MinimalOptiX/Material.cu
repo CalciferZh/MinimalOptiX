@@ -47,7 +47,28 @@ RT_PROGRAM void lambertian() {
   pld.color *= lambParams.albedo;
 }
 
-// ====================== light ======================
+// ====================== metal ==========================
+
+rtDeclareVariable(MetalParams, metalParams, , );
+
+RT_PROGRAM void metal() {
+  if (pld.depth > rayMaxDepth || length(pld.color) < rayMinIntensity) {
+    pld.color = absorbColor;
+    return;
+  }
+  float3 rayOrigin = ray.origin + t * ray.direction;
+  float3 rayDirection = reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(pld.randSeed);
+  Ray newRay(rayOrigin, rayDirection, rayTypeRadiance, rayEpsilonT);
+  Payload newPld;
+  newPld.color = make_float3(1.f, 1.f, 1.f);
+  newPld.depth = pld.depth + 1;
+  newPld.randSeed = pld.randSeed + pld.depth;
+  rtTrace(topObject, newRay, newPld);
+  pld.color *= newPld.color;
+  pld.color *= metalParams.albedo;
+}
+
+// ====================== light ==========================
 
 rtDeclareVariable(float3, lightColor, , );
 

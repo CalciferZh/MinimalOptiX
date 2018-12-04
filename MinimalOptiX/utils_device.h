@@ -32,3 +32,7 @@ static __device__ __inline__ float3 randInUnitSphere(int& seed) {
   } while (length(res) >= 1.0);
   return res;
 }
+
+static __device__ __inline__ float3 reflect(float3& v, float3& n) {
+  return (v - 2 * dot(v, n) * n);
+}

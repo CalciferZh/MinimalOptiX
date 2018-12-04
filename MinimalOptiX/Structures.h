@@ -32,3 +32,8 @@ struct LambertianParams {
   int nScatter; // how many rays to be scattered
   int scatterMaxDepth; // don't scatter when deeper than this
 };
+
+struct MetalParams {
+  optix::float3 albedo;
+  float fuzz;
+};
