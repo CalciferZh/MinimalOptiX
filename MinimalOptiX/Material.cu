@@ -40,7 +40,7 @@ RT_PROGRAM void lambertian() {
   for (int i = 0; i < nNewRay; ++i) {
     newRay.direction = normalize(geoNormal + randInUnitSphere(pld.randSeed));
     newPld.color = make_float3(1.f, 1.f, 1.f);
-    newPld.randSeed = pld.randSeed + newPld.depth * i;
+    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth * lambParams.nScatter + i);
     rtTrace(topObject, newRay, newPld);
     tmpColor += newPld.color;
   }
@@ -67,7 +67,7 @@ RT_PROGRAM void metal() {
   Payload newPld;
   newPld.color = make_float3(1.f, 1.f, 1.f);
   newPld.depth = pld.depth + 1;
-  newPld.randSeed = pld.randSeed + pld.depth;
+  newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
   rtTrace(topObject, newRay, newPld);
   pld.color *= newPld.color;
   pld.color *= metalParams.albedo;
@@ -125,7 +125,7 @@ RT_PROGRAM void glass() {
       newRay.direction = refracted;
     }
     newPld.color = make_float3(1.f, 1.f, 1.f);
-    newPld.randSeed = pld.randSeed + newPld.depth * i;
+    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth * glassParams.nScatter + i);
     rtTrace(topObject, newRay, newPld);
     tmpColor += newPld.color;
   }

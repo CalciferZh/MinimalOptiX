@@ -20,7 +20,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   setupScene(SCENE_0);
   context->validate();
   for (uint i = 0; i < nSuperSampling; ++i) {
-    context["nSample"]->setUint(i);
+    context["randSeed"]->setInt(randSeed());
     context->launch(0, fixedWidth, fixedHeight);
   }
   update(ACCU_BUFFER);

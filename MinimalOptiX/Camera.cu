@@ -7,7 +7,7 @@ using namespace optix;
 rtDeclareVariable(Ray, ray, rtCurrentRay, );
 rtDeclareVariable(rtObject, topObject, , );
 rtDeclareVariable(Payload, pld, rtPayload, );
-rtDeclareVariable(uint, nSample, , );
+rtDeclareVariable(int, randSeed, , );
 rtDeclareVariable(uint, rayTypeRadiance, , );
 rtDeclareVariable(uint, nSuperSampling, , );
 rtDeclareVariable(uint2, launchIdx, rtLaunchIndex, );
@@ -21,7 +21,7 @@ rtBuffer<uchar4, 2> outputBuffer;
 RT_PROGRAM void pinholeCamera() {
   Payload pld;
   pld.depth = 1;
-  pld.randSeed = nSample * launchDim.x * launchDim.y + launchIdx.x * launchDim.y + launchIdx.x + 960822;
+  pld.randSeed = randSeed;
   pld.color = make_float3(1.f);
 
   Ray ray;

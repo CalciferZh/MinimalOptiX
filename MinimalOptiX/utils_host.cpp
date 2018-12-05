@@ -78,3 +78,9 @@ void setCamParams(optix::float3& lookFrom, optix::float3& lookAt, optix::float3&
   camParams.horizontal = 2 * halfWidth * u;
   camParams.vertical = 2 * halfHeight * v;
 }
+
+int randSeed() {
+  static auto randSeed = std::minstd_rand(std::random_device{}());
+  static auto randGen = std::uniform_real_distribution<float>(-1.f, 1.f);
+  return int(randGen(randSeed) * (float)std::numeric_limits<int>::max());
+}
