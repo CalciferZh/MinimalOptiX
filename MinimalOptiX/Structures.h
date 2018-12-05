@@ -29,7 +29,7 @@ struct QuadParams {
 
 struct LambertianParams {
   optix::float3 albedo;
-  int nScatter; // how many rays to be scattered
+  unsigned int nScatter; // how many rays to be scattered
   int scatterMaxDepth; // don't scatter when deeper than this
 };
 
@@ -41,6 +41,6 @@ struct MetalParams {
 struct GlassParams {
   optix::float3 albedo;
   float refIdx;
-  int nScatter;
+  unsigned int nScatter;
   int scatterMaxDepth;
 };
