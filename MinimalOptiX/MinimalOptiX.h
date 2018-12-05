@@ -20,6 +20,7 @@ class MinimalOptiX : public QMainWindow {
 
 public:
   enum SceneNum { SCENE_0 };
+  enum UpdateSource { OUTPUT_BUFFER, ACCU_BUFFER };
 
 	//ruction
 	MinimalOptiX(QWidget *parent = Q_NULLPTR);
@@ -28,7 +29,7 @@ public:
   void compilePtx();
   void setupScene(SceneNum num);
   void setupContext();
-	void update();
+	void update(UpdateSource source);
 
 	// Components
 	QGraphicsScene scene;
@@ -38,7 +39,7 @@ public:
   // Attributes
   uint fixedWidth = 1024u;
   uint fixedHeight = 512u;
-  uint nSuperSampling = 16u;
+  uint nSuperSampling = 512u;
   uint rayMaxDepth = 64;
   float rayMinIntensity = 0.01f;
   float rayEpsilonT = 0.01f;

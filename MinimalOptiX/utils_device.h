@@ -4,9 +4,9 @@ using namespace optix;
 
 static __device__ __inline__ uchar4 make_color(const float3& c) {
   return make_uchar4(
-    static_cast<unsigned char>(__saturatef(c.z)*255.99f),
-    static_cast<unsigned char>(__saturatef(c.y)*255.99f),
     static_cast<unsigned char>(__saturatef(c.x)*255.99f),
+    static_cast<unsigned char>(__saturatef(c.y)*255.99f),
+    static_cast<unsigned char>(__saturatef(c.z)*255.99f),
     255u
   );
 }

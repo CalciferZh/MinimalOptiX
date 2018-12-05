@@ -19,8 +19,11 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   setupContext();
   setupScene(SCENE_0);
   context->validate();
-  context->launch(0, fixedWidth, fixedHeight);
-  update();
+  for (uint i = 0; i < nSuperSampling; ++i) {
+    context["nSample"]->setUint(i);
+    context->launch(0, fixedWidth, fixedHeight);
+  }
+  update(ACCU_BUFFER);
 }
 
 void MinimalOptiX::compilePtx() {
@@ -32,21 +35,34 @@ void MinimalOptiX::compilePtx() {
   }
 }
 
-void MinimalOptiX::update() {
-  uchar* bufferData = (uchar*)context["outputBuffer"]->getBuffer()->map();
-
-  QColor color;
-  for (uint i = 0; i < fixedHeight; ++i) {
-    for (uint j = 0; j < fixedWidth; ++j) {
-      uchar* src = bufferData + 4 * (i * fixedWidth + j);
-      color.setBlue((int)*(src + 0));
-      color.setGreen((int)*(src + 1));
-      color.setRed((int)*(src + 2));
-      canvas.setPixelColor(j, fixedHeight - i - 1, color);
+void MinimalOptiX::update(UpdateSource source) {
+  if (source == OUTPUT_BUFFER) {
+    uchar* bufferData = (uchar*)context["outputBuffer"]->getBuffer()->map();
+    QColor color;
+    for (uint i = 0; i < fixedHeight; ++i) {
+      for (uint j = 0; j < fixedWidth; ++j) {
+        uchar* src = bufferData + 4 * (i * fixedWidth + j);
+        color.setRed((int)*(src + 0));
+        color.setGreen((int)*(src + 1));
+        color.setBlue((int)*(src + 2));
+        canvas.setPixelColor(j, fixedHeight - i - 1, color);
+      }
     }
+    context["outputBuffer"]->getBuffer()->unmap();
+  } else if (source == ACCU_BUFFER) {
+    float* bufferData = (float*)context["accuBuffer"]->getBuffer()->map();
+    QColor color;
+    for (uint i = 0; i < fixedHeight; ++i) {
+      for (uint j = 0; j < fixedWidth; ++j) {
+        float* src = bufferData + 3 * (i * fixedWidth + j);
+        color.setRedF(src[0] / (float)nSuperSampling);
+        color.setGreenF(src[1] / (float)nSuperSampling);
+        color.setBlueF(src[2] / (float)nSuperSampling);
+        canvas.setPixelColor(j, fixedHeight - i - 1, color);
+      }
+    }
+    context["accuBuffer"]->getBuffer()->unmap();
   }
-
-  context["outputBuffer"]->getBuffer()->unmap();
 
   QPixmap tmpPixmap = QPixmap::fromImage(canvas);
   scene.clear();
@@ -82,6 +98,8 @@ void MinimalOptiX::setupContext() {
 
   optix::Buffer outputBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
   context["outputBuffer"]->set(outputBuffer);
+  optix::Buffer accuBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT3, fixedWidth, fixedHeight);
+  context["accuBuffer"]->set(accuBuffer);
 
   // Exception
   optix::Program exptProgram = context->createProgramFromPTXString(ptxStrs[exCuFileName], "exception");
@@ -114,7 +132,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereMid["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
     optix::Material sphereMidMtl = context->createMaterial();
     sphereMidMtl->setClosestHitProgram(0, lambMtl);
-    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, 16, 1 };
+    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, 4, 1 };
     sphereMidMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
     optix::GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
@@ -138,7 +156,7 @@ void MinimalOptiX::setupScene(SceneNum num) {
     sphereLeft["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
     optix::Material sphereLeftMtl = context->createMaterial();
     sphereLeftMtl->setClosestHitProgram(0, glassMtl);
-    GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f, 16, 1 };
+    GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f, 4, 1 };
     sphereLeftMtl["glassParams"]->setUserData(sizeof(glassParams), &glassParams);
     optix::GeometryInstance sphereLeftGI = context->createGeometryInstance(sphereLeft, &sphereLeftMtl, &sphereLeftMtl + 1);
 
