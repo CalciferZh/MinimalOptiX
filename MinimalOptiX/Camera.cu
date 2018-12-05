@@ -21,7 +21,7 @@ rtBuffer<uchar4, 2> outputBuffer;
 RT_PROGRAM void pinholeCamera() {
   Payload pld;
   pld.depth = 1;
-  pld.randSeed = randSeed;
+  pld.randSeed = tea<16>(launchIdx.x * launchDim.x + launchIdx.y, randSeed);
   pld.color = make_float3(1.f);
 
   Ray ray;
