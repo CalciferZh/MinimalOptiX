@@ -1,5 +1,8 @@
 #include "MinimalOptiX.h"
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
+
 MinimalOptiX::MinimalOptiX(QWidget *parent)
 	: QMainWindow(parent)
 {
@@ -209,12 +212,75 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-  } else if (sceneId == SCENE_COFFEE) {
-    Scene scene("scenes/coffee/coffee.scene");
+
+  } else if (sceneId == SCENE_COFFEE) { // ==================================================================================
+    // objects
+    optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
+    optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
+    optix::Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
+    optix::Program quadBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadBBox");
+    optix::Program meshIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshIntersect");
+    optix::Program meshBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshBBox");
+    optix::Program lambMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "lambertian");
+    optix::Program metalMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "metal");
+    optix::Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
+    optix::Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
+
+    std::string sceneFolder = baseSceneFolder + "coffee/";
+    Scene scene((sceneFolder + "coffee.scene").c_str());
     optix::GeometryGroup meshGroup = context->createGeometryGroup();
     meshGroup->setChildCount(uint(scene.meshNames.size()));
+    meshGroup->setAcceleration(context->createAcceleration("Trbvh"));
     for (int i = 0; i < scene.meshNames.size(); ++i) {
-      int j = i;
+      tinyobj::attrib_t attrib;
+      std::vector<tinyobj::shape_t> shapes;
+      std::vector<tinyobj::material_t> materials;
+      std::string warn;
+      std::string err;
+      bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (sceneFolder + scene.meshNames[i]).c_str());
+      if (!err.empty() || !ret) {
+        std::cerr << err << std::endl;
+        throw std::logic_error("Cannot load mesh file.");
+      }
+      for (size_t s = 0; s < shapes.size(); s++) {
+        // load geometry
+        optix::Geometry mesh = context->createGeometry();
+        mesh->setPrimitiveCount(uint(attrib.vertices.size() / 3));
+        mesh->setIntersectionProgram(meshIntersect);
+        mesh->setBoundingBoxProgram(meshBBox);
+
+        optix::Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.vertices.size());
+        optix::Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
+        optix::Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size());
+        optix::Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.indices.size());
+
+        memcpy(vertexBuffer->map(), &attrib.vertices[0], sizeof(float) * attrib.vertices.size());
+        memcpy(normalBuffer->map(), &attrib.normals[0], sizeof(float) * attrib.normals.size());
+        memcpy(texcoordBuffer->map(), &attrib.texcoords[0], sizeof(float) * attrib.texcoords.size());
+
+        int* indexBufDst = (int*)indexBuffer->map();
+
+        for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+          if (shapes[s].mesh.num_face_vertices[f] != 3) {
+            throw std::logic_error("Face's number of vertices != 3");
+          }
+          indexBufDst[f * 3 + 0] = shapes[s].mesh.indices[f * 3 + 0].vertex_index;
+          indexBufDst[f * 3 + 1] = shapes[s].mesh.indices[f * 3 + 1].vertex_index;
+          indexBufDst[f * 3 + 2] = shapes[s].mesh.indices[f * 3 + 2].vertex_index;
+        }
+        
+        vertexBuffer->unmap();
+        normalBuffer->unmap();
+        texcoordBuffer->unmap();
+        indexBuffer->unmap();
+
+        mesh["vertexBuffer"]->set(vertexBuffer);
+        mesh["accuBuffer"]->set(normalBuffer);
+        mesh["texcoordBuffer"]->set(texcoordBuffer);
+        mesh["indexBuffer"]->set(indexBuffer);
+
+        // load material
+      }
     }
   }
 }

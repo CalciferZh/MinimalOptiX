@@ -142,6 +142,7 @@ advapi32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;%(AdditionalDe
     <QtMoc Include="minimalOptiX.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="structures.h" />
+    <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="utils_host.h" />
   </ItemGroup>
   <ItemGroup>

@@ -134,6 +134,12 @@ RT_PROGRAM void glass() {
   pld.color *= glassParams.albedo;
 }
 
+// ====================== Disney =========================
+
+rtDeclareVariable(int, MaterialID, , );
+rtBuffer<DisneyParams> DisneyParamsMtlBuf;
+
+
 // ====================== light ==========================
 
 rtDeclareVariable(float3, lightColor, , );

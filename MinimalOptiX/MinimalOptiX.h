@@ -46,6 +46,7 @@ public:
   float rayMinIntensity = 0.01f;
   float rayEpsilonT = 0.01f;
   std::map<std::string, std::string> ptxStrs;
+  std::string baseSceneFolder = "scenes/";
 
   std::string camCuFileName = "camera.cu";
   std::string exCuFileName = "exception.cu";
