@@ -13,13 +13,14 @@
 #include "ui_MinimalOptiX.h"
 #include "utils_host.h"
 #include "structures.h"
+#include "scene.h"
 
 
 class MinimalOptiX : public QMainWindow {
 	Q_OBJECT
 
 public:
-  enum SceneNum { SCENE_0 };
+  enum SceneId { SCENE_TEST, SCENE_COFFEE };
   enum UpdateSource { OUTPUT_BUFFER, ACCU_BUFFER };
 
 	//ruction
@@ -27,7 +28,7 @@ public:
 
 	// Utilities
   void compilePtx();
-  void setupScene(SceneNum num);
+  void setupScene(SceneId sceneId);
   void setupContext();
 	void update(UpdateSource source);
 

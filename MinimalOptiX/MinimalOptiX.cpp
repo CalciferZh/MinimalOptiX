@@ -17,7 +17,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  setupScene(SCENE_0);
+  setupScene(SCENE_COFFEE);
   context->validate();
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
@@ -112,8 +112,8 @@ void MinimalOptiX::setupContext() {
   missProgram["bgColor"]->setFloat(0.3f, 0.3f, 0.3f);
 }
 
-void MinimalOptiX::setupScene(SceneNum num) {
-  if (num == SCENE_0) {
+void MinimalOptiX::setupScene(SceneId sceneId) {
+  if (sceneId == SCENE_TEST) {
     // objects
     optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
     optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
@@ -209,5 +209,12 @@ void MinimalOptiX::setupScene(SceneNum num) {
     optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
+  } else if (sceneId == SCENE_COFFEE) {
+    Scene scene("scenes/coffee/coffee.scene");
+    optix::GeometryGroup meshGroup = context->createGeometryGroup();
+    meshGroup->setChildCount(uint(scene.meshNames.size()));
+    for (int i = 0; i < scene.meshNames.size(); ++i) {
+      int j = i;
+    }
   }
 }

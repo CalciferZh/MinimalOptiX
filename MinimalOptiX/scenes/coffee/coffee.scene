@@ -1,0 +1,183 @@
+properties
+{
+	width 800
+	height 1000
+}
+
+material Plastic_Orange
+{
+	color 1.0 0.37 0.013
+	roughness 0.001
+}
+
+material Plastic_Black
+{
+	color 0.00063 0.00063 0.00063
+	roughness 0.1
+}
+
+material Glass
+{
+	color 1.0 1.0 1.0
+	brdf 1
+}
+
+material Metal
+{
+	color 1.0 1.0 1.0
+	roughness 0.01
+	metallic 1.0
+}
+
+material Floor
+{
+	color 0.578 0.578 0.578
+	roughness 0.01
+}
+
+mesh
+{
+	file Mesh003.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh005.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh007.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh008.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh011.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh013.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh014.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh017.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh018.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh019.obj
+	material Plastic_Black
+}
+
+mesh
+{
+	file Mesh000.obj
+	material Plastic_Orange
+}
+
+mesh
+{
+	file Mesh001.obj
+	material Plastic_Orange
+}
+
+mesh
+{
+	file Mesh006.obj
+	material Plastic_Orange
+}
+
+mesh
+{
+	file Mesh009.obj
+	material Plastic_Orange
+}
+
+mesh
+{
+	file Mesh012.obj
+	material Plastic_Orange
+}
+
+mesh
+{
+	file Mesh016.obj
+	material Plastic_Orange
+}
+
+mesh
+{
+	file Mesh010.obj
+	material Glass
+}
+
+mesh
+{
+	file Mesh002.obj
+	material Metal
+}
+
+mesh
+{
+	file Mesh015.obj
+	material Metal
+}
+
+mesh
+{
+	file Mesh004.obj
+	material Floor
+}
+
+light
+{
+	type Quad
+	position -0.359309 0.449693 -0.010809
+	v1 -0.1966 0.449693 0.339
+	v2 -0.359309 0.027337 -0.010809
+	emission 4.0 4.0 4.0
+}
+
+light
+{
+	type Quad
+	position 0.320673 0.027337 0.228975
+	v1  0.320673 0.476 0.228975
+	v2  0.320673 0.027337 -0.1375
+	emission 4.0 4.0 4.0
+}
+
+light
+{
+	type Quad
+	position 0.230128 0.50385 0.267372
+	v1 -0.230128 0.50385 0.267372
+	v2 0.230128 0.50385 -0.1927
+	emission 4.0 4.0 4.0
+}

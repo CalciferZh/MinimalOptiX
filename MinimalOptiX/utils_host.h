@@ -21,4 +21,6 @@ void setQuadParams(optix::float3& anchor, optix::float3& v1, optix::float3& v2, 
 
 void setCamParams(optix::float3& lookFrom, optix::float3& lookAt, optix::float3& up, float vFoV, float aspect, CamParams& camParams);
 
+void initDisneyParams(DisneyParams& disneyParams);
+
 int randSeed();

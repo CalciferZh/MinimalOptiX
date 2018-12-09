@@ -140,12 +140,14 @@ advapi32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;%(AdditionalDe
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="minimalOptiX.h" />
+    <ClInclude Include="scene.h" />
     <ClInclude Include="structures.h" />
     <ClInclude Include="utils_host.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="minimalOptiX.cpp" />
+    <ClCompile Include="scene.cpp" />
     <ClCompile Include="utils_host.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
