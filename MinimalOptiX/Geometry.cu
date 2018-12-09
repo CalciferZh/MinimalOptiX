@@ -107,7 +107,7 @@ rtDeclareVariable(float3, backHitPoint, attribute backHitPoint, );
 rtDeclareVariable(float3, frontHitPoint, attribute frontHitPoint, );
 rtDeclareVariable(float, t, rtIntersectionDistance, );
 
-void meshIntersect(int primIdx) {
+RT_PROGRAM void meshIntersect(int primIdx) {
   const int3 v_idx = indexBuffer[primIdx];
   const float3 p0 = vertexBuffer[v_idx.x];
   const float3 p1 = vertexBuffer[v_idx.y];

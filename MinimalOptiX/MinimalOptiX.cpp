@@ -230,6 +230,8 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     std::string sceneFolder = baseSceneFolder + "coffee/";
     Scene scene((sceneFolder + "coffee.scene").c_str());
 
+    optix::Aabb aabb;
+
     optix::GeometryGroup meshGroup = context->createGeometryGroup();
     meshGroup->setChildCount(uint(scene.meshNames.size()));
     meshGroup->setAcceleration(context->createAcceleration("Trbvh"));
@@ -262,13 +264,18 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
 
         int* indexBufDst = (int*)indexBuffer->map();
 
-        for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+        for (int f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
           if (shapes[s].mesh.num_face_vertices[f] != 3) {
             throw std::logic_error("Face's number of vertices != 3");
           }
-          indexBufDst[f * 3 + 0] = shapes[s].mesh.indices[f * 3 + 0].vertex_index;
-          indexBufDst[f * 3 + 1] = shapes[s].mesh.indices[f * 3 + 1].vertex_index;
-          indexBufDst[f * 3 + 2] = shapes[s].mesh.indices[f * 3 + 2].vertex_index;
+          for (int fv = 0; fv < 3; ++fv) {
+            auto idx = shapes[s].mesh.indices[f * 3 + fv];
+            indexBufDst[f * 3 + fv] = idx.vertex_index;
+            tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+            tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+            tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+            aabb.include(optix::make_float3(vx, vy, vz));
+          }
         }
 
         vertexBuffer->unmap();
@@ -277,7 +284,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
         indexBuffer->unmap();
 
         geo["vertexBuffer"]->set(vertexBuffer);
-        geo["accuBuffer"]->set(normalBuffer);
+        geo["normalBuffer"]->set(normalBuffer);
         geo["texcoordBuffer"]->set(texcoordBuffer);
         geo["indexBuffer"]->set(indexBuffer);
 
@@ -291,13 +298,14 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
       }
     }
 
+    // lights
     optix::GeometryGroup lightGroup = context->createGeometryGroup();
     lightGroup->setChildCount(uint(scene.lights.size()));
     lightGroup->setAcceleration(context->createAcceleration("Trbvh"));
     for (auto& light : scene.lights) {
       optix::Geometry geo = context->createGeometry();
       geo->setPrimitiveCount(1u);
-      if (light.shape = SPHERE) {
+      if (light.shape == SPHERE) {
         geo->setIntersectionProgram(sphereIntersect);
         geo->setBoundingBoxProgram(sphereBBox);
         SphereParams params;
@@ -310,6 +318,8 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
         QuadParams params;
         setQuadParams(light.position, light.u, light.v, params);
         geo["quadParams"]->setUserData(sizeof(QuadParams), &params);
+      } else {
+        throw std::logic_error("No shape for light.");
       }
 
       optix::Material mtl = context->createMaterial();
@@ -326,6 +336,16 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     topGroup->addChild(meshGroup);
     topGroup->addChild(lightGroup);
     context["topGroup"]->set(topGroup);
+
+    // camera
+    CamParams camParams;
+    optix::float3 lookFrom = 1.5f * aabb.extent();
+    optix::float3 lookAt = aabb.center();
+    optix::float3 up = { 0.f, 1.f, 0.f };
+    setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
+    optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+    context->setRayGenerationProgram(0, rayGenProgram);
   }
 
 }
