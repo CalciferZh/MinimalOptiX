@@ -5,7 +5,7 @@
 using namespace optix;
 
 rtDeclareVariable(Ray, ray, rtCurrentRay, );
-rtDeclareVariable(rtObject, topObject, , );
+rtDeclareVariable(rtObject, topGroup, , );
 rtDeclareVariable(Payload, pld, rtPayload, );
 rtDeclareVariable(int, randSeed, , );
 rtDeclareVariable(uint, rayTypeRadiance, , );
@@ -34,7 +34,7 @@ RT_PROGRAM void pinholeCamera() {
     camParams.srcLowerLeftCorner + xy.x * camParams.horizontal + xy.y * camParams.vertical - camParams.origin
   );
 
-  rtTrace(topObject, ray, pld);
+  rtTrace(topGroup, ray, pld);
 
   accuBuffer[launchIdx] += pld.color;
   outputBuffer[launchIdx] = make_color(pld.color);

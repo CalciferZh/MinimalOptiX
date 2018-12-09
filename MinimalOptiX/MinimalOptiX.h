@@ -33,7 +33,7 @@ public:
 	void update(UpdateSource source);
 
 	// Components
-	QGraphicsScene scene;
+	QGraphicsScene qgscene;
 	QImage canvas;
   optix::Context context;
 

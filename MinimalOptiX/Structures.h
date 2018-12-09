@@ -64,7 +64,7 @@ struct DisneyParams {
   BrdfType brdf;
 };
 
-enum LightType { SPHERE, QUAD };
+enum LightShape { SPHERE, QUAD };
 
 struct LightParams {
   optix::float3 position;
@@ -74,5 +74,5 @@ struct LightParams {
   optix::float3 v;
   float area;
   float radius;
-  LightType lightType;
+  LightShape shape;
 };

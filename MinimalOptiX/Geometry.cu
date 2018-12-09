@@ -128,9 +128,9 @@ void meshIntersect(int primIdx) {
       if (texcoordBuffer.size() == 0) {
         texcoord = make_float3( 0.0f, 0.0f, 0.0f );
       } else {
-        float2 t0 = texcoordBuffer[ v_idx.x ];
-        float2 t1 = texcoordBuffer[ v_idx.y ];
-        float2 t2 = texcoordBuffer[ v_idx.z ];
+        float2 t0 = texcoordBuffer[v_idx.x];
+        float2 t1 = texcoordBuffer[v_idx.y];
+        float2 t2 = texcoordBuffer[v_idx.z];
         texcoord = make_float3( t1*beta + t2*gamma + t0*(1.0f-beta-gamma) );
       }
       refineHitpoint(

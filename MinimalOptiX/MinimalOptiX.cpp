@@ -14,7 +14,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   ui.view->setFixedSize(fixedWidth, fixedHeight);
   ui.view->setSceneRect(0, 0, fixedWidth, fixedHeight);
   ui.view->fitInView(0, 0, fixedWidth, fixedHeight, Qt::KeepAspectRatio);
-  ui.view->setScene(&scene);
+  ui.view->setScene(&qgscene);
 
   canvas = QImage(ui.view->size(), QImage::Format_RGB888);
 
@@ -68,8 +68,8 @@ void MinimalOptiX::update(UpdateSource source) {
   }
 
   QPixmap tmpPixmap = QPixmap::fromImage(canvas);
-  scene.clear();
-  scene.addPixmap(tmpPixmap);
+  qgscene.clear();
+  qgscene.addPixmap(tmpPixmap);
   ui.view->update();
 }
 
@@ -201,7 +201,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
       geoGrp->setChild(i, objs[i]);
     }
     geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
-    context["topObject"]->set(geoGrp);
+    context["topGroup"]->set(geoGrp);
 
     // camera
     CamParams camParams;
@@ -225,9 +225,11 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     optix::Program metalMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "metal");
     optix::Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
     optix::Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
+    optix::Program disneyMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disney");
 
     std::string sceneFolder = baseSceneFolder + "coffee/";
     Scene scene((sceneFolder + "coffee.scene").c_str());
+
     optix::GeometryGroup meshGroup = context->createGeometryGroup();
     meshGroup->setChildCount(uint(scene.meshNames.size()));
     meshGroup->setAcceleration(context->createAcceleration("Trbvh"));
@@ -244,10 +246,10 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
       }
       for (size_t s = 0; s < shapes.size(); s++) {
         // load geometry
-        optix::Geometry mesh = context->createGeometry();
-        mesh->setPrimitiveCount(uint(attrib.vertices.size() / 3));
-        mesh->setIntersectionProgram(meshIntersect);
-        mesh->setBoundingBoxProgram(meshBBox);
+        optix::Geometry geo = context->createGeometry();
+        geo->setPrimitiveCount(uint(attrib.vertices.size() / 3));
+        geo->setIntersectionProgram(meshIntersect);
+        geo->setBoundingBoxProgram(meshBBox);
 
         optix::Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.vertices.size());
         optix::Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
@@ -268,19 +270,62 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
           indexBufDst[f * 3 + 1] = shapes[s].mesh.indices[f * 3 + 1].vertex_index;
           indexBufDst[f * 3 + 2] = shapes[s].mesh.indices[f * 3 + 2].vertex_index;
         }
-        
+
         vertexBuffer->unmap();
         normalBuffer->unmap();
         texcoordBuffer->unmap();
         indexBuffer->unmap();
 
-        mesh["vertexBuffer"]->set(vertexBuffer);
-        mesh["accuBuffer"]->set(normalBuffer);
-        mesh["texcoordBuffer"]->set(texcoordBuffer);
-        mesh["indexBuffer"]->set(indexBuffer);
+        geo["vertexBuffer"]->set(vertexBuffer);
+        geo["accuBuffer"]->set(normalBuffer);
+        geo["texcoordBuffer"]->set(texcoordBuffer);
+        geo["indexBuffer"]->set(indexBuffer);
 
         // load material
+        optix::Material mtl = context->createMaterial();
+        mtl->setClosestHitProgram(0, disneyMtl);
+        mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &scene.materials[i]);
+
+        optix::GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
+        meshGroup->addChild(meshGI);
       }
     }
+
+    optix::GeometryGroup lightGroup = context->createGeometryGroup();
+    lightGroup->setChildCount(uint(scene.lights.size()));
+    lightGroup->setAcceleration(context->createAcceleration("Trbvh"));
+    for (auto& light : scene.lights) {
+      optix::Geometry geo = context->createGeometry();
+      geo->setPrimitiveCount(1u);
+      if (light.shape = SPHERE) {
+        geo->setIntersectionProgram(sphereIntersect);
+        geo->setBoundingBoxProgram(sphereBBox);
+        SphereParams params;
+        params.radius = light.radius;
+        params.center = light.position;
+        geo["sphereParams"]->setUserData(sizeof(SphereParams), &params);
+      } else if (light.shape == QUAD) {
+        geo->setIntersectionProgram(quadIntersect);
+        geo->setBoundingBoxProgram(quadBBox);
+        QuadParams params;
+        setQuadParams(light.position, light.u, light.v, params);
+        geo["quadParams"]->setUserData(sizeof(QuadParams), &params);
+      }
+
+      optix::Material mtl = context->createMaterial();
+      mtl->setClosestHitProgram(0, lightMtl);
+      mtl["lightParams"]->setUserData(sizeof(LightParams), &light);
+
+      optix::GeometryInstance gi = context->createGeometryInstance(geo, &mtl, &mtl + 1);
+      lightGroup->addChild(gi);
+    }
+
+    optix::Group topGroup = context->createGroup();
+    topGroup->setChildCount(2);
+    topGroup->setAcceleration(context->createAcceleration("Trbvh"));
+    topGroup->addChild(meshGroup);
+    topGroup->addChild(lightGroup);
+    context["topGroup"]->set(topGroup);
   }
+
 }

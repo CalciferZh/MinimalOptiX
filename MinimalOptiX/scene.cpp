@@ -87,13 +87,13 @@ Scene::Scene(const char* fileName) {
       }
 
       if (strcmp(lightType, "Quad") == 0) {
-        light.lightType = QUAD;
+        light.shape = QUAD;
         light.u = v1 - light.position;
         light.v = v2 - light.position;
         light.area = optix::length(optix::cross(light.u, light.v));
         light.normal = optix::normalize(optix::cross(light.u, light.v));
       } else if (strcmp(lightType, "Sphere") == 0) {
-        light.lightType = SPHERE;
+        light.shape = SPHERE;
         light.normal = optix::normalize(light.normal);
         light.area = 4.0f * M_PIf * light.radius * light.radius;
       }
