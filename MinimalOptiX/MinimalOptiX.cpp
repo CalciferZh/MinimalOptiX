@@ -20,7 +20,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  setupScene(SCENE_MESH_TEST);
+  setupScene(SCENE_COFFEE);
   context->validate();
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
@@ -112,7 +112,8 @@ void MinimalOptiX::setupContext() {
   // Miss
   optix::Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
   context->setMissProgram(0, missProgram);
-  missProgram["bgColor"]->setFloat(1.f, 1.f, 1.f);
+  //missProgram["bgColor"]->setFloat(1.f, 1.f, 1.f);
+  missProgram["bgColor"]->setFloat(0.3f, 0.3f, 0.3f);
 }
 
 void MinimalOptiX::setupScene(SceneId sceneId) {
@@ -305,7 +306,6 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     optix::Aabb aabb;
 
     optix::GeometryGroup meshGroup = context->createGeometryGroup();
-    meshGroup->setChildCount(uint(scene.meshNames.size()));
     meshGroup->setAcceleration(context->createAcceleration("Trbvh"));
     for (int i = 0; i < scene.meshNames.size(); ++i) {
       tinyobj::attrib_t attrib;
@@ -321,30 +321,30 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
       for (size_t s = 0; s < shapes.size(); s++) {
         // load geometry
         optix::Geometry geo = context->createGeometry();
-        geo->setPrimitiveCount(uint(attrib.vertices.size() / 3));
+        geo->setPrimitiveCount(shapes[s].mesh.num_face_vertices.size());
         geo->setIntersectionProgram(meshIntersect);
         geo->setBoundingBoxProgram(meshBBox);
 
         optix::Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.vertices.size());
-        memcpy(vertexBuffer->map(), &attrib.vertices[0], sizeof(float) * attrib.vertices.size());
+        memcpy(vertexBuffer->map(), attrib.vertices.data(), sizeof(float) * attrib.vertices.size());
         vertexBuffer->unmap();
         geo["vertexBuffer"]->set(vertexBuffer);
 
+        optix::Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
         if (!attrib.normals.empty()) {
-          optix::Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
-          memcpy(normalBuffer->map(), &attrib.normals[0], sizeof(float) * attrib.normals.size());
+          memcpy(normalBuffer->map(), attrib.normals.data(), sizeof(float) * attrib.normals.size());
           normalBuffer->unmap();
-          geo["normalBuffer"]->set(normalBuffer);
         }
+        geo["normalBuffer"]->set(normalBuffer);
 
+        optix::Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size());
         if (!attrib.texcoords.empty()) {
-          optix::Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size());
-          memcpy(texcoordBuffer->map(), &attrib.texcoords[0], sizeof(float) * attrib.texcoords.size());
+          memcpy(texcoordBuffer->map(), attrib.texcoords.data(), sizeof(float) * attrib.texcoords.size());
           texcoordBuffer->unmap();
-          geo["texcoordBuffer"]->set(texcoordBuffer);
         }
+        geo["texcoordBuffer"]->set(texcoordBuffer);
 
-        optix::Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.indices.size());
+        optix::Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.num_face_vertices.size());
         int* indexBufDst = (int*)indexBuffer->map();
         for (int f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
           if (shapes[s].mesh.num_face_vertices[f] != 3) {
@@ -365,7 +365,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
         // load material
         optix::Material mtl = context->createMaterial();
         mtl->setClosestHitProgram(0, disneyMtl);
-        mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &scene.materials[i]);
+        mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
 
         optix::GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
         meshGroup->addChild(meshGI);
@@ -374,7 +374,6 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
 
     // lights
     optix::GeometryGroup lightGroup = context->createGeometryGroup();
-    lightGroup->setChildCount(uint(scene.lights.size()));
     lightGroup->setAcceleration(context->createAcceleration("Trbvh"));
     for (auto& light : scene.lights) {
       optix::Geometry geo = context->createGeometry();
@@ -405,7 +404,6 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     }
 
     optix::Group topGroup = context->createGroup();
-    topGroup->setChildCount(2);
     topGroup->setAcceleration(context->createAcceleration("Trbvh"));
     topGroup->addChild(meshGroup);
     topGroup->addChild(lightGroup);
