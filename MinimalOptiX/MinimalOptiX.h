@@ -38,9 +38,9 @@ public:
   optix::Context context;
 
   // Attributes
-  uint fixedWidth = 1024u;
-  uint fixedHeight = 512u;
-  uint nSuperSampling = 32u;
+  uint fixedWidth = 800u;
+  uint fixedHeight = 1000u;
+  uint nSuperSampling = 1u;
   uint rayMaxDepth = 64;
   uint defaultNScatter = 32;
   float rayMinIntensity = 0.01f;

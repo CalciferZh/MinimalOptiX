@@ -22,7 +22,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  setupScene(SCENE_BASIC_TEST);
+  setupScene(SCENE_COFFEE);
   context->validate();
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
@@ -218,7 +218,8 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
     // ======================================================================================================================
-  } else if (sceneId == SCENE_MESH_TEST) { // ===============================================================================
+  }
+  else if (sceneId == SCENE_MESH_TEST) {
     // ======================================================================================================================
     // objects
     Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
@@ -289,7 +290,8 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
     // ======================================================================================================================
-  } else if (sceneId == SCENE_COFFEE) { // ==================================================================================
+  }
+  else if (sceneId == SCENE_COFFEE) {
     // ======================================================================================================================
     // objects
     Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
@@ -325,7 +327,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
       for (size_t s = 0; s < shapes.size(); s++) {
         // load geometry
         Geometry geo = context->createGeometry();
-        geo->setPrimitiveCount(shapes[s].mesh.num_face_vertices.size());
+        geo->setPrimitiveCount(uint(shapes[s].mesh.num_face_vertices.size()));
         geo->setIntersectionProgram(meshIntersect);
         geo->setBoundingBoxProgram(meshBBox);
 
@@ -415,8 +417,8 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
 
     // camera
     CamParams camParams;
-    float3 lookFrom = 1.5f * aabb.extent();
-    float3 lookAt = aabb.center();
+    float3 lookFrom = make_float3(0.f, 0.21 * aabb.extent(1), 0.25 * aabb.extent(2));
+    float3 lookAt = lookFrom + make_float3(0.f, 0.f, -1.f);
     float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
