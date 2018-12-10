@@ -20,7 +20,7 @@ class MinimalOptiX : public QMainWindow {
 	Q_OBJECT
 
 public:
-  enum SceneId { SCENE_TEST, SCENE_COFFEE };
+  enum SceneId { SCENE_BASIC_TEST, SCENE_MESH_TEST, SCENE_COFFEE };
   enum UpdateSource { OUTPUT_BUFFER, ACCU_BUFFER };
 
 	//ruction

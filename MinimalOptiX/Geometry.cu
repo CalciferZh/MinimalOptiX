@@ -126,12 +126,12 @@ RT_PROGRAM void meshIntersect(int primIdx) {
         shadingNormal = normalize(normalBuffer[v_idx.y] * beta + normalBuffer[v_idx.z] * gamma + normalBuffer[v_idx.x] * (1.f - beta - gamma));
       }
       if (texcoordBuffer.size() == 0) {
-        texcoord = make_float3( 0.0f, 0.0f, 0.0f );
+        texcoord = make_float3(0.f);
       } else {
         float2 t0 = texcoordBuffer[v_idx.x];
         float2 t1 = texcoordBuffer[v_idx.y];
         float2 t2 = texcoordBuffer[v_idx.z];
-        texcoord = make_float3( t1*beta + t2*gamma + t0*(1.0f-beta-gamma) );
+        texcoord = make_float3(t1 * beta + t2 * gamma + t0 * (1.0f - beta - gamma));
       }
       refineHitpoint(
         ray.origin + t * ray.direction,

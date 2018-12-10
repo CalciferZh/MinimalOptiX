@@ -20,7 +20,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  setupScene(SCENE_COFFEE);
+  setupScene(SCENE_MESH_TEST);
   context->validate();
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
@@ -112,11 +112,11 @@ void MinimalOptiX::setupContext() {
   // Miss
   optix::Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
   context->setMissProgram(0, missProgram);
-  missProgram["bgColor"]->setFloat(0.3f, 0.3f, 0.3f);
+  missProgram["bgColor"]->setFloat(1.f, 1.f, 1.f);
 }
 
 void MinimalOptiX::setupScene(SceneId sceneId) {
-  if (sceneId == SCENE_TEST) {
+  if (sceneId == SCENE_BASIC_TEST) {
     // objects
     optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
     optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
@@ -212,8 +212,80 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
+    // ======================================================================================================================
+  } else if (sceneId == SCENE_MESH_TEST) { // ===============================================================================
+    // ======================================================================================================================
+    // objects
+    optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
+    optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
+    optix::Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
+    optix::Program quadBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadBBox");
+    optix::Program meshIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshIntersect");
+    optix::Program meshBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshBBox");
+    optix::Program lambMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "lambertian");
+    optix::Program metalMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "metal");
+    optix::Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
+    optix::Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
+    optix::Program disneyMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disney");
 
+    optix::Geometry geo = context->createGeometry();
+    geo->setPrimitiveCount(4u);
+    geo->setIntersectionProgram(meshIntersect);
+    geo->setBoundingBoxProgram(meshBBox);
+
+    optix::Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, 4u);
+    float vertBufSrc[] = {
+      0.f, 0.f, -0.75f,
+      0.5f, 0.f, 0.25f,
+      -0.5f, 0.f, 0.25f,
+      0.f, 1.f, 0.f
+    };
+    memcpy(vertexBuffer->map(), vertBufSrc, sizeof(float) * 12);
+    vertexBuffer->unmap();
+    geo["vertexBuffer"]->set(vertexBuffer);
+
+    optix::Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, 0);
+    geo["normalBuffer"]->set(normalBuffer);
+    optix::Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, 0);
+    geo["texcoordBuffer"]->set(texcoordBuffer);
+
+
+    optix::Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, 4u);
+    int idxBufSrc[] = {
+      1, 0, 3,
+      1, 3, 2,
+      3, 0, 2,
+      0, 1, 2
+    };
+    memcpy(indexBuffer->map(), idxBufSrc, sizeof(int) * 12);
+    indexBuffer->unmap();
+    geo["indexBuffer"]->set(indexBuffer);
+
+    optix::Material mtl = context->createMaterial();
+    mtl->setClosestHitProgram(0, lambMtl);
+    LambertianParams lambParams = { { 0.3f, 0.5f, 0.7f }, 16, 1 };
+    mtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
+
+    optix::GeometryInstance gi = context->createGeometryInstance(geo, &mtl, &mtl + 1);
+
+    optix::GeometryGroup grp = context->createGeometryGroup();
+    grp->setChildCount(1u);
+    grp->setChild(0, gi);
+    grp->setAcceleration(context->createAcceleration("NoAccel"));
+    context["topGroup"]->set(grp);
+
+    // Camera
+    CamParams camParams;
+    auto lookFrom = optix::make_float3(0.f, 0.3f, -2.f);
+    auto lookAt = optix::make_float3(0.f, 0.3f, 0.f);
+    auto up = optix::make_float3(0.f, 1.f, 0.f);
+    setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
+    optix::Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+    context->setRayGenerationProgram(0, rayGenProgram);
+    // ======================================================================================================================
   } else if (sceneId == SCENE_COFFEE) { // ==================================================================================
+    // ======================================================================================================================
     // objects
     optix::Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
     optix::Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
@@ -254,16 +326,26 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
         geo->setBoundingBoxProgram(meshBBox);
 
         optix::Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.vertices.size());
-        optix::Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
-        optix::Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size());
-        optix::Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.indices.size());
-
         memcpy(vertexBuffer->map(), &attrib.vertices[0], sizeof(float) * attrib.vertices.size());
-        memcpy(normalBuffer->map(), &attrib.normals[0], sizeof(float) * attrib.normals.size());
-        memcpy(texcoordBuffer->map(), &attrib.texcoords[0], sizeof(float) * attrib.texcoords.size());
+        vertexBuffer->unmap();
+        geo["vertexBuffer"]->set(vertexBuffer);
 
+        if (!attrib.normals.empty()) {
+          optix::Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
+          memcpy(normalBuffer->map(), &attrib.normals[0], sizeof(float) * attrib.normals.size());
+          normalBuffer->unmap();
+          geo["normalBuffer"]->set(normalBuffer);
+        }
+
+        if (!attrib.texcoords.empty()) {
+          optix::Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size());
+          memcpy(texcoordBuffer->map(), &attrib.texcoords[0], sizeof(float) * attrib.texcoords.size());
+          texcoordBuffer->unmap();
+          geo["texcoordBuffer"]->set(texcoordBuffer);
+        }
+
+        optix::Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.indices.size());
         int* indexBufDst = (int*)indexBuffer->map();
-
         for (int f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
           if (shapes[s].mesh.num_face_vertices[f] != 3) {
             throw std::logic_error("Face's number of vertices != 3");
@@ -277,15 +359,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
             aabb.include(optix::make_float3(vx, vy, vz));
           }
         }
-
-        vertexBuffer->unmap();
-        normalBuffer->unmap();
-        texcoordBuffer->unmap();
         indexBuffer->unmap();
-
-        geo["vertexBuffer"]->set(vertexBuffer);
-        geo["normalBuffer"]->set(normalBuffer);
-        geo["texcoordBuffer"]->set(texcoordBuffer);
         geo["indexBuffer"]->set(indexBuffer);
 
         // load material
