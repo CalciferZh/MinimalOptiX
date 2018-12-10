@@ -22,7 +22,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  setupScene(SCENE_COFFEE);
+  setupScene(SCENE_BASIC_TEST);
   context->validate();
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
@@ -194,7 +194,9 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     quadLight["quadParams"]->setUserData(sizeof(QuadParams), &quadParams);
     Material quadLightMtl = context->createMaterial();
     quadLightMtl->setClosestHitProgram(0, lightMtl);
-    quadLightMtl["lightColor"]->setFloat(1.f, 1.f, 1.f);
+    LightParams lightParams;
+    lightParams.emission = make_float3(1.f);
+    quadLightMtl["lightParams"]->setUserData(sizeof(LightParams), &lightParams);
     GeometryInstance quadLightGI = context->createGeometryInstance(quadLight, &quadLightMtl, &quadLightMtl + 1);
 
     std::vector<GeometryInstance> objs = { sphereMidGI, quadFloorGI, quadLightGI, sphereRightGI, sphereLeftGI };
