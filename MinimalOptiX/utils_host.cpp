@@ -90,6 +90,23 @@ void setCamParams(optix::float3& lookFrom, optix::float3& lookAt, optix::float3&
   camParams.vertical = 2 * halfHeight * v;
 }
 
+void initDisneyParams(DisneyParams& disneyParams) {
+  disneyParams.color = optix::make_float3(1.0f, 1.0f, 1.0f);
+  disneyParams.emission = optix::make_float3(0.0f);
+  disneyParams.metallic = 0.0;
+  disneyParams.subsurface = 0.0f;
+  disneyParams.specular = 0.5f;
+  disneyParams.roughness = 0.5f;
+  disneyParams.specularTint = 0.0f;
+  disneyParams.anisotropic = 0.0f;
+  disneyParams.sheen = 0.0f;
+  disneyParams.sheenTint = 0.5f;
+  disneyParams.clearcoat = 0.0f;
+  disneyParams.clearcoatGloss = 1.0f;
+  disneyParams.brdf = NORMAL;
+  disneyParams.albedoID = RT_TEXTURE_ID_NULL;
+}
+
 int randSeed() {
   static auto randSeed = std::minstd_rand(std::random_device{}());
   static auto randGen = std::uniform_real_distribution<float>(-1.f, 1.f);

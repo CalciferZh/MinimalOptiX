@@ -7,7 +7,7 @@ using namespace optix;
 rtDeclareVariable(Payload, pld, rtPayload, );
 rtDeclareVariable(Ray, ray, rtCurrentRay, );
 
-rtDeclareVariable(rtObject, topObject, , );
+rtDeclareVariable(rtObject, topGroup, , );
 rtDeclareVariable(uint, rayMaxDepth, , );
 rtDeclareVariable(uint, rayTypeRadiance, , );
 rtDeclareVariable(float, t, rtIntersectionDistance, );
@@ -41,7 +41,7 @@ RT_PROGRAM void lambertian() {
     newRay.direction = normalize(geoNormal + randInUnitSphere(pld.randSeed));
     newPld.color = make_float3(1.f, 1.f, 1.f);
     newPld.randSeed = tea<16>(pld.randSeed, newPld.depth * lambParams.nScatter + i);
-    rtTrace(topObject, newRay, newPld);
+    rtTrace(topGroup, newRay, newPld);
     tmpColor += newPld.color;
   }
   tmpColor /= nNewRay;
@@ -68,7 +68,7 @@ RT_PROGRAM void metal() {
   newPld.color = make_float3(1.f, 1.f, 1.f);
   newPld.depth = pld.depth + 1;
   newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-  rtTrace(topObject, newRay, newPld);
+  rtTrace(topGroup, newRay, newPld);
   pld.color *= newPld.color;
   pld.color *= metalParams.albedo;
 }
@@ -126,7 +126,7 @@ RT_PROGRAM void glass() {
     }
     newPld.color = make_float3(1.f, 1.f, 1.f);
     newPld.randSeed = tea<16>(pld.randSeed, newPld.depth * glassParams.nScatter + i);
-    rtTrace(topObject, newRay, newPld);
+    rtTrace(topGroup, newRay, newPld);
     tmpColor += newPld.color;
   }
   tmpColor /= nNewRay;
@@ -134,10 +134,20 @@ RT_PROGRAM void glass() {
   pld.color *= glassParams.albedo;
 }
 
+// ====================== Disney =========================
+
+rtDeclareVariable(DisneyParams, disneyParams, , );
+
+RT_PROGRAM void disney() {
+  pld.color *= disneyParams.color;
+}
+
+
 // ====================== light ==========================
 
-rtDeclareVariable(float3, lightColor, , );
+rtDeclareVariable(LightParams, lightParams, , );
+// NOTE: some of light's attributes need to be computed mannually
 
 RT_PROGRAM void light() {
-  pld.color *= lightColor;
+  pld.color *= lightParams.emission;
 }

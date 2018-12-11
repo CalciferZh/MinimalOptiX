@@ -45,3 +45,35 @@ struct GlassParams {
   unsigned int nScatter;
   int scatterMaxDepth;
 };
+
+enum BrdfType { NORMAL, GLASS };
+
+struct DisneyParams {
+  int albedoID;
+  optix::float3 color;
+  optix::float3 emission;
+  float metallic;
+  float subsurface;
+  float specular;
+  float roughness;
+  float specularTint;
+  float anisotropic;
+  float sheen;
+  float sheenTint;
+  float clearcoat;
+  float clearcoatGloss;
+  BrdfType brdf;
+};
+
+enum LightShape { SPHERE, QUAD };
+
+struct LightParams {
+  optix::float3 position;
+  optix::float3 normal;
+  optix::float3 emission;
+  optix::float3 u;
+  optix::float3 v;
+  float area;
+  float radius;
+  LightShape shape;
+};

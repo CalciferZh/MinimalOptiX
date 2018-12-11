@@ -1,12 +1,14 @@
 #include <optix_world.h>
 #include "structures.h"
+#include "utils_device.h"
 
 using namespace optix;
 
 rtDeclareVariable(Ray, ray, rtCurrentRay, );
 rtDeclareVariable(float3, geoNormal, attribute geoNormal, );
+rtDeclareVariable(float3, shadingNormal,   attribute shadingNormal, );
 
-// ================= sphere ===================
+// ==================== sphere ===================
 
 rtDeclareVariable(SphereParams, sphereParams, , );
 
@@ -49,7 +51,7 @@ RT_PROGRAM void sphereBBox(int, float result[6]) {
   );
 }
 
-// ================= quad ======================
+// ==================== quad ======================
 // directly copied from nVidia official sample, with code style modification
 
 rtDeclareVariable(QuadParams, quadParams, , );
@@ -88,6 +90,72 @@ RT_PROGRAM void quadBBox(int, float result[6]) {
   if(area > 0.0f && !isinf(area)) {
     aabb->m_min = fminf(fminf(p00, p01), fminf(p10, p11));
     aabb->m_max = fmaxf(fmaxf(p00, p01), fmaxf(p10, p11));
+  } else {
+    aabb->invalidate();
+  }
+}
+
+// ==================== mesh ======================
+
+rtBuffer<float3> vertexBuffer;
+rtBuffer<float3> normalBuffer;
+rtBuffer<float2> texcoordBuffer;
+rtBuffer<int3>   indexBuffer;
+
+rtDeclareVariable(float3, texcoord, attribute texcoord, );
+rtDeclareVariable(float3, backHitPoint, attribute backHitPoint, );
+rtDeclareVariable(float3, frontHitPoint, attribute frontHitPoint, );
+rtDeclareVariable(float, t, rtIntersectionDistance, );
+
+RT_PROGRAM void meshIntersect(int primIdx) {
+  const int3 v_idx = indexBuffer[primIdx];
+  const float3 p0 = vertexBuffer[v_idx.x];
+  const float3 p1 = vertexBuffer[v_idx.y];
+  const float3 p2 = vertexBuffer[v_idx.z];
+
+  float3 n;
+  float t;
+  float beta;
+  float gamma;
+  if (intersect_triangle(ray, p0, p1, p2, n, t, beta, gamma)) {
+    if (rtPotentialIntersection(t)) {
+      geoNormal = normalize(n);
+      if(normalBuffer.size() == 0) {
+        shadingNormal = geoNormal;
+      } else {
+        shadingNormal = normalize(normalBuffer[v_idx.y] * beta + normalBuffer[v_idx.z] * gamma + normalBuffer[v_idx.x] * (1.f - beta - gamma));
+      }
+      if (texcoordBuffer.size() == 0) {
+        texcoord = make_float3(0.f);
+      } else {
+        float2 t0 = texcoordBuffer[v_idx.x];
+        float2 t1 = texcoordBuffer[v_idx.y];
+        float2 t2 = texcoordBuffer[v_idx.z];
+        texcoord = make_float3(t1 * beta + t2 * gamma + t0 * (1.0f - beta - gamma));
+      }
+      refineHitpoint(
+        ray.origin + t * ray.direction,
+        ray.direction,
+        geoNormal,
+        p0,
+        backHitPoint,
+        frontHitPoint
+      );
+      rtReportIntersection(0);
+    }
+  }
+}
+
+RT_PROGRAM void meshBBox (int primIdx, float result[6]) {
+  const int3 v_idx = indexBuffer[primIdx];
+  const float3 v0 = vertexBuffer[v_idx.x];
+  const float3 v1 = vertexBuffer[v_idx.y];
+  const float3 v2 = vertexBuffer[v_idx.z];
+  const float area = length(cross(v1 - v0, v2 - v0));
+  optix::Aabb* aabb = (optix::Aabb*)result;
+  if(area > 0.0f && !isinf(area)) {
+    aabb->m_min = fminf(fminf(v0, v1), v2);
+    aabb->m_max = fmaxf(fmaxf(v0, v1), v2);
   } else {
     aabb->invalidate();
   }
