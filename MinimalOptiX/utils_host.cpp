@@ -1,6 +1,17 @@
 #pragma once
 
 #include "utils_host.h"
+extern "C"
+{
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libavdevice/avdevice.h>
+#include <libavformat/version.h>
+#include <libavutil/time.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/imgutils.h>
+}
 
 void getStrFromFile(std::string& content, std::string& fileName) {
   std::ifstream file(fileName);
@@ -83,4 +94,103 @@ int randSeed() {
   static auto randSeed = std::minstd_rand(std::random_device{}());
   static auto randGen = std::uniform_real_distribution<float>(-1.f, 1.f);
   return int(randGen(randSeed) * (float)std::numeric_limits<int>::max());
+}
+
+void generateVideo(std::vector<QImage>& images, const char* output_path) {
+  int ret;
+  const int width = 1024;
+  const int height = 512;
+  const int in_linesize[1] = { 3 * width };
+  AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_MPEG1VIDEO);
+  if (!codec) {
+    throw std::runtime_error("Codec init failed.");
+  }
+
+  SwsContext* sws_context = NULL;
+  sws_context = sws_getCachedContext(sws_context,
+    width, height, AV_PIX_FMT_RGB24,
+    width, height, AV_PIX_FMT_YUV420P,
+    0, 0, 0, 0);
+  if (!sws_context) {
+    throw std::runtime_error("Create sws context failed.");
+  }
+
+  AVCodecContext* c = avcodec_alloc_context3(codec);
+  if (!c) {
+    throw std::runtime_error("Allocate video codec context failed.");
+  }
+
+  c->bit_rate = 400000;
+  c->width = width;
+  c->height = height;
+  c->time_base.num = 1;
+  //c->time_base.den = 1;
+  c->time_base.den = 25;
+  c->gop_size = 10;
+  c->max_b_frames = 1;
+  c->pix_fmt = AV_PIX_FMT_YUV420P;
+  if (avcodec_open2(c, codec, NULL) < 0) {
+    throw std::runtime_error("Open codec failed.");
+  }
+
+  FILE* file = fopen(output_path, "wb");
+  if (!file) {
+    throw std::runtime_error("Open output file failed.");
+  }
+
+  AVFrame* frame = av_frame_alloc();
+  if (!frame) {
+    throw std::runtime_error("Allocate video frame failed.");
+  }
+  frame->format = c->pix_fmt;
+  frame->width = c->width;
+  frame->height = c->height;
+
+  ret = av_image_alloc(frame->data, frame->linesize, c->width, c->height, c->pix_fmt, 32);
+  if (ret < 0) {
+    throw std::runtime_error("Allocate raw picture buffer failed.");
+  }
+
+  AVPacket pkt;
+
+  uint8_t* rgb = NULL;
+
+  for (int pts = 0; pts < images.size(); pts++) {
+    frame->pts = pts;
+    rgb = images[pts].bits();
+    int got_output;
+    sws_scale(sws_context, (const uint8_t * const *)&rgb, in_linesize, 0,
+      c->height, frame->data, frame->linesize);
+    av_init_packet(&pkt);
+    pkt.data = NULL;
+    pkt.size = 0;
+    ret = avcodec_encode_video2(c, &pkt, frame, &got_output);
+    if (ret < 0) {
+      throw std::runtime_error("Encoding frame failed.");
+    }
+    if (got_output) {
+      fwrite(pkt.data, 1, pkt.size, file);
+      av_packet_unref(&pkt);
+    }
+  }
+  uint8_t endcode[] = { 0, 0, 1, 0xb7 };
+  int got_output;
+  do {
+    fflush(stdout);
+    ret = avcodec_encode_video2(c, &pkt, NULL, &got_output);
+    if (ret < 0) {
+      fprintf(stderr, "Error encoding frame\n");
+      exit(1);
+    }
+    if (got_output) {
+      fwrite(pkt.data, 1, pkt.size, file);
+      av_packet_unref(&pkt);
+    }
+  } while (got_output);
+  fwrite(endcode, 1, sizeof(endcode), file);
+  fclose(file);
+  avcodec_close(c);
+  av_free(c);
+  av_freep(&frame->data[0]);
+  av_frame_free(&frame);
 }
