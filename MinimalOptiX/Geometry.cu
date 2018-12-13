@@ -7,8 +7,8 @@ using namespace optix;
 rtDeclareVariable(Ray, ray, rtCurrentRay, );
 rtDeclareVariable(float3, geoNormal, attribute geoNormal, );
 rtDeclareVariable(float3, shadingNormal,   attribute shadingNormal, );
-rtDeclareVariable(float3, backHitPoint, attribute backHitPoint, );
 rtDeclareVariable(float3, frontHitPoint, attribute frontHitPoint, );
+rtDeclareVariable(float3, backHitPoint, attribute backHitPoint, );
 rtDeclareVariable(float3, texcoord, attribute texcoord, );
 
 // ==================== sphere ===================
@@ -31,6 +31,9 @@ RT_PROGRAM void sphereIntersect(int) {
     geoNormal = normalize(
       ray.origin + t * ray.direction - sphereParams.center
     );
+    shadingNormal = geoNormal;
+    frontHitPoint = ray.origin + t * ray.direction;
+    backHitPoint = frontHitPoint;
     if (rtReportIntersection(0)) {
       checkSecond = false;
     }
@@ -41,6 +44,9 @@ RT_PROGRAM void sphereIntersect(int) {
       geoNormal = normalize(
         ray.origin + t * ray.direction - sphereParams.center
       );
+      shadingNormal = geoNormal;
+      frontHitPoint = ray.origin + t * ray.direction;
+      backHitPoint = frontHitPoint;
       rtReportIntersection(0);
     }
   }
@@ -72,6 +78,9 @@ RT_PROGRAM void quadIntersect(int) {
       if(a2 >= 0 && a2 <= 1){
         if(rtPotentialIntersection(t)) {
           geoNormal = n;
+          shadingNormal = n;
+          frontHitPoint = ray.origin + t * ray.direction;
+          backHitPoint = frontHitPoint;
           rtReportIntersection(0);
         }
       }

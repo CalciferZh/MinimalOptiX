@@ -17,6 +17,7 @@ rtDeclareVariable(float3, absorbColor, , );
 rtDeclareVariable(float3, geoNormal, attribute geoNormal, );
 rtDeclareVariable(float3, shadingNormal,   attribute shadingNormal, );
 rtDeclareVariable(float3, frontHitPoint, attribute frontHitPoint, );
+rtDeclareVariable(float3, backHitPoint, attribute backHitPoint, );
 
 // =================== lambertian ======================
 
@@ -47,8 +48,7 @@ RT_PROGRAM void lambertian() {
     tmpColor += newPld.color;
   }
   tmpColor /= nNewRay;
-  pld.color *= tmpColor;
-  pld.color *= lambParams.albedo;
+  pld.color = tmpColor * lambParams.albedo;
 }
 
 // ====================== metal ==========================
@@ -71,8 +71,7 @@ RT_PROGRAM void metal() {
   newPld.depth = pld.depth + 1;
   newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
   rtTrace(topGroup, newRay, newPld);
-  pld.color *= newPld.color;
-  pld.color *= metalParams.albedo;
+  pld.color = metalParams.albedo * newPld.color;
 }
 
 // ====================== glass ==========================
@@ -85,55 +84,38 @@ RT_PROGRAM void glass() {
     return;
   }
 
-  float3 reflected = reflect(ray.direction, geoNormal);
-  float3 outwardNormal;
-  float realRefIdx;
-  float cosine;
-  if (dot(ray.direction, geoNormal) > 0) {
-    outwardNormal = -geoNormal;
-    realRefIdx = glassParams.refIdx;
-    cosine = dot(ray.direction, geoNormal);
-    cosine = sqrt(1 - glassParams.refIdx * glassParams.refIdx * (1 - cosine * cosine));
-  } else {
-    outwardNormal = geoNormal;
-    realRefIdx = 1.f / glassParams.refIdx;
-    cosine = dot(-ray.direction, geoNormal);
-  }
-  float3 refracted;
-  float reflectProb;
-  int nNewRay;
-  if (refract(ray.direction, outwardNormal, realRefIdx, refracted)) {
-    reflectProb = schlick(cosine, glassParams.refIdx);
-    nNewRay = glassParams.nScatter;
-  } else {
-    reflectProb = 1.f;
-    nNewRay = 1;
-  }
-  if (pld.depth > glassParams.scatterMaxDepth) {
-    nNewRay = 1;
-  }
+  float3 normal = shadingNormal;
+	float cosThetaI = -dot(ray.direction, normal);
+	float refIdx;
+	if (cosThetaI > 0.f) {
+		refIdx = glassParams.refIdx;
+	} else {
+		refIdx = 1.f / glassParams.refIdx;
+		cosThetaI = -cosThetaI;
+		normal = -normal;
+	}
+
+	float3 refracted;
+  float totalReflection = !refract(refracted, ray.direction, normal, refIdx);
+	float cosThetaT = -dot(normal, refracted);
+	float reflectProb =  totalReflection ? 1.f : fresnel(cosThetaI, cosThetaT, refIdx);
   Ray newRay;
-  newRay.origin = ray.origin + t * ray.direction;
   newRay.ray_type = rayTypeRadiance;
   newRay.tmin = rayEpsilonT;
   newRay.tmax = RT_DEFAULT_MAX;
   Payload newPld;
   newPld.depth = pld.depth + 1;
-  float3 tmpColor = { 0.f, 0.f, 0.f };
-  for (int i = 0; i < nNewRay; ++i) {
-    if (rand(pld.randSeed) < reflectProb) {
-      newRay.direction = reflected;
-    } else {
-      newRay.direction = refracted;
-    }
-    newPld.color = make_float3(1.f, 1.f, 1.f);
-    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth * glassParams.nScatter + i);
-    rtTrace(topGroup, newRay, newPld);
-    tmpColor += newPld.color;
+  newPld.color = make_float3(1.f, 1.f, 1.f);
+  newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
+  if (rand(pld.randSeed) < reflectProb) {
+    newRay.origin = frontHitPoint;
+    newRay.direction = reflect(ray.direction, normal);
+  } else {
+    newRay.origin = backHitPoint;
+    newRay.direction = refracted;
   }
-  tmpColor /= nNewRay;
-  pld.color *= tmpColor;
-  pld.color *= glassParams.albedo;
+  rtTrace(topGroup, newRay, newPld);
+  pld.color = newPld.color * glassParams.albedo;
 }
 
 // ====================== Disney =========================
@@ -142,6 +124,11 @@ rtDeclareVariable(DisneyParams, disneyParams, , );
 rtDeclareVariable(float3, texcoord, attribute texcoord, );
 
 RT_PROGRAM void disney() {
+  if (pld.depth > rayMaxDepth || length(pld.color) < rayMinIntensity) {
+    pld.color = absorbColor;
+    return;
+  }
+
   float3 baseColor;
   if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
     baseColor = disneyParams.color;
@@ -159,7 +146,6 @@ RT_PROGRAM void disney() {
     float r2 = rand(pld.randSeed);
     optix::Onb onb(N);
     if (rand(pld.randSeed) < diffuseRatio) { // diffuse
-      // L = geoNormal + randInUnitSphere(pld.randSeed);
       cosine_sample_hemisphere(r1, r2, L);
       onb.inverse_transform(L);
     } else { // spect
@@ -196,7 +182,7 @@ RT_PROGRAM void disney() {
     float pdf = diffuseRatio * pdfDiff + specularRatio * pdfSpec;
 
     if (pdf < 0) {
-      pld.color *= 0.f;
+      pld.color = make_float3(0.f);
       return;
     }
 
@@ -239,7 +225,7 @@ RT_PROGRAM void disney() {
     float3 bsdf = ((1.0f / M_PIf) * lerp(Fd, ss, disneyParams.subsurface) * baseColor + Fsheen) * (1.0f - disneyParams.metallic) +
                   Gs * Fs * Ds + 0.25f * disneyParams.clearcoat * Gr * Fr * Dr;
 
-    pld.color *= bsdf * lightColor / pdf;
+    pld.color = bsdf * lightColor / pdf;
     float exp = 1.f / 2.2f;
     pld.color.x = pow(pld.color.x, exp);
     pld.color.y = pow(pld.color.y, exp);
@@ -255,5 +241,6 @@ rtDeclareVariable(LightParams, lightParams, , );
 // NOTE: some of light's attributes need to be computed mannually
 
 RT_PROGRAM void light() {
-  pld.color *= lightParams.emission;
+  // pld.color = lightParams.emission;
+  pld.color = make_float3(1.f);
 }

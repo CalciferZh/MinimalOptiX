@@ -190,7 +190,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     sphereLeft["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams + 2);
     Material sphereLeftMtl = context->createMaterial();
     sphereLeftMtl->setClosestHitProgram(0, glassMtl);
-    GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f, defaultNScatter, 1 };
+    GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f };
     sphereLeftMtl["glassParams"]->setUserData(sizeof(glassParams), &glassParams);
     GeometryInstance sphereLeftGI = context->createGeometryInstance(sphereLeft, &sphereLeftMtl, &sphereLeftMtl + 1);
 
@@ -398,8 +398,17 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
 
         // load material
         Material mtl = context->createMaterial();
-        mtl->setClosestHitProgram(0, disneyMtl);
-        mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
+        if (scene.materials[i].brdf == NORMAL) {
+          mtl->setClosestHitProgram(0, disneyMtl);
+          mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
+        } else {
+          mtl->setClosestHitProgram(0, glassMtl);
+          GlassParams glassParams;
+          glassParams.albedo = scene.materials[i].color;
+          glassParams.refIdx = 1.45f;
+          mtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
+        }
+
 
         GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
         meshGroup->addChild(meshGI);

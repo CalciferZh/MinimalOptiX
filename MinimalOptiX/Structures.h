@@ -42,8 +42,6 @@ struct MetalParams {
 struct GlassParams {
   optix::float3 albedo;
   float refIdx;
-  unsigned int nScatter;
-  int scatterMaxDepth;
 };
 
 enum BrdfType { NORMAL, GLASS };

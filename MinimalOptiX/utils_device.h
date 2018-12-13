@@ -48,24 +48,11 @@ __device__ __inline__ uchar4 make_color(const float3& c) {
   );
 }
 
-__device__ __inline__ float3 reflect(float3& v, float3& n) {
-  return (v - 2 * dot(v, n) * n);
-}
 
-__device__ __inline__ bool refract(float3& v, float3& n, float refRatio, float3& refracted) {
-  float dt = dot(v, n);
-  float discriminant = 1.0 - refRatio * refRatio * (1 - dt * dt);
-  if (discriminant > 0) {
-    refracted = refRatio * (v - n * dt) - n * sqrt(discriminant);
-    return true;
-  }
-  return false;
-}
-
-__device__ __inline__ float schlick(float cosine, float refIdx) {
-  float r = (1 - refIdx) / (1 + refIdx);
-  r *= r;
-  return r + (1 - r) * powf((1 - cosine), 5.f);
+__device__ __inline__ float fresnel(float cosThetaI, float cosThetaT, float refIdx) {
+  float rs = (cosThetaI - cosThetaT * refIdx) / (cosThetaI + refIdx * cosThetaT);
+  float rp = (cosThetaI * refIdx - cosThetaT) / (cosThetaI * refIdx + cosThetaT);
+  return 0.5f * (rs * rs + rp * rp);
 }
 
 
@@ -174,3 +161,6 @@ __device__ __inline__ float smithGGgxAniso(float NdotV, float VdotX, float VdotY
     return 1.0 / (NdotV + sqrt( square(VdotX*ax) + square(VdotY*ay) + square(NdotV) ));
 }
 
+__device__ __inline__ float3 logf(float3 v) {
+  return make_float3(logf(v.x), logf(v.y), logf(v.z));
+}
