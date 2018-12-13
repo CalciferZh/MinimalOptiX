@@ -29,6 +29,7 @@ Scene::Scene(const char* fileName) {
       printf("%s", line);
 
       DisneyParams material;
+      initDisneyParams(material);
       char texName[kMaxLineLength] = "None";
 
       while (fgets(line, kMaxLineLength, file)) {

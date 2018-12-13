@@ -129,3 +129,39 @@ __device__ __inline__ void refineHitpoint(
     front_hit_point = offset(refined_hit_point,  normal);
   }
 }
+
+__device__ __inline__ float GTR1(float NDotH, float a) {
+  if (a >= 1.f) {
+    return (1.f / M_PIf);
+  }
+  float a2 = a * a;
+  float t = 1.f + (a2 - 1.f) * NDotH * NDotH;
+  return (a2 - 1.0f) / (M_PIf * logf(a2) * t);
+}
+
+__device__ __inline__ float GTR2(float NDotH, float a) {
+  float a2 = a * a;
+  float t = 1.f + (a2 - 1.f) * NDotH * NDotH;
+  return a2 / (M_PIf * t*t);
+}
+
+__device__ __inline__ float GTR2_Aniso(float ndoth, float hdotx, float hdoty, float ax, float ay) {
+	float hdotxa2 = (hdotx / ax);
+	hdotxa2 *= hdotxa2;
+	float hdotya2 = (hdoty / ay);
+	hdotya2 *= hdotya2;
+	float denom = hdotxa2 + hdotya2 + ndoth * ndoth;
+	return denom > 1e-5 ? (1.f / (M_PIf * ax * ay * denom * denom)) : 0.f;
+}
+
+__device__ __inline__ float SchlickFresnel(float u) {
+  float m = clamp(1.f-u, 0.f, 1.f);
+  float m2 = m * m;
+  return m2 * m2 * m;
+}
+
+__device__ __inline__ float smithG_GGX(float NDotv, float alphaG) {
+  float a = alphaG * alphaG;
+  float b = NDotv * NDotv;
+  return 1.f / (NDotv + sqrtf(a + b - a * b));
+}

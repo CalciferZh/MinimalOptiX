@@ -7,6 +7,9 @@ using namespace optix;
 rtDeclareVariable(Ray, ray, rtCurrentRay, );
 rtDeclareVariable(float3, geoNormal, attribute geoNormal, );
 rtDeclareVariable(float3, shadingNormal,   attribute shadingNormal, );
+rtDeclareVariable(float3, backHitPoint, attribute backHitPoint, );
+rtDeclareVariable(float3, frontHitPoint, attribute frontHitPoint, );
+rtDeclareVariable(float3, texcoord, attribute texcoord, );
 
 // ==================== sphere ===================
 
@@ -101,11 +104,6 @@ rtBuffer<float3> vertexBuffer;
 rtBuffer<float3> normalBuffer;
 rtBuffer<float2> texcoordBuffer;
 rtBuffer<int3>   indexBuffer;
-
-rtDeclareVariable(float3, texcoord, attribute texcoord, );
-rtDeclareVariable(float3, backHitPoint, attribute backHitPoint, );
-rtDeclareVariable(float3, frontHitPoint, attribute frontHitPoint, );
-rtDeclareVariable(float, t, rtIntersectionDistance, );
 
 RT_PROGRAM void meshIntersect(int primIdx) {
   const int3 v_idx = indexBuffer[primIdx];

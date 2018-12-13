@@ -11,6 +11,7 @@
 #include <optix_world.h>
 
 #include "structures.h"
+#include "utils_host.h"
 
 // Forked from https://github.com/knightcrawler25/Optix-PathTracer with modification
 
