@@ -9,6 +9,7 @@
 #include <vector>
 #include <limits>
 #include <random>
+#include <QImage>
 #include "structures.h"
 
 void getStrFromFile(std::string& content, std::string& fileName);
@@ -24,3 +25,5 @@ void setCamParams(optix::float3& lookFrom, optix::float3& lookAt, optix::float3&
 void initDisneyParams(DisneyParams& disneyParams);
 
 int randSeed();
+
+void generateVideo(std::vector<QImage>& images, const char*);

@@ -9,6 +9,9 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
+  fixedWidth = fixedWidths[scendId];
+  fixedHeight = fixedHeights[scendId];
+
   setFixedSize(fixedWidth, fixedHeight);
   setWindowFlags(Qt::MSWindowsFixedSizeDialogHint);
 
@@ -22,13 +25,14 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  setupScene(SCENE_COFFEE);
+  setupScene(scendId);
   context->validate();
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
     context->launch(0, fixedWidth, fixedHeight);
   }
   update(ACCU_BUFFER);
+  record(50, "sample_1.mpg");
 }
 
 void MinimalOptiX::compilePtx() {
@@ -64,6 +68,9 @@ void MinimalOptiX::update(UpdateSource source) {
         color.setGreenF(src[1] / (float)nSuperSampling);
         color.setBlueF(src[2] / (float)nSuperSampling);
         canvas.setPixelColor(j, fixedHeight - i - 1, color);
+        src[0] = 0.0f;
+        src[1] = 0.0f;
+        src[2] = 0.0f;
       }
     }
     context["accuBuffer"]->getBuffer()->unmap();
@@ -76,7 +83,8 @@ void MinimalOptiX::update(UpdateSource source) {
 }
 
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
-  if (e->key() == Qt::Key_Space) {
+  switch (e->key()) {
+  case Qt::Key_Space:
     canvas.save(QString::number(QDateTime::currentMSecsSinceEpoch()) + QString(".png"));
     QMessageBox::information(
       this,
@@ -84,6 +92,27 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
       "Image saved!",
       QMessageBox::Ok
     );
+    break;
+  case Qt::Key_Return:
+    animate(100);
+    render(scendId);
+    break;  
+  case Qt::Key_W:
+    lookFrom += {0.0f, 0.0f, 1.0f};
+    render(scendId);
+    break;
+  case Qt::Key_S:
+    lookFrom -= {0.0f, 0.0f, 1.0f};
+    render(scendId);
+    break;
+  case Qt::Key_A:
+    lookFrom += {1.0f, 0.0f, 0.0f};
+    render(scendId);
+    break;
+  case Qt::Key_D:
+    lookFrom -= {1.0f, 0.0f, 0.0f};
+    render(scendId);
+    break;
   }
 }
 
@@ -134,9 +163,10 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     sphereMid->setPrimitiveCount(1u);
     sphereMid->setIntersectionProgram(sphereIntersect);
     sphereMid->setBoundingBoxProgram(sphereBBox);
-    SphereParams sphereParams = { 0.5f, {0.f, 0.f, -1.f} };
-    sphereMid["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
+
+    sphereMid["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams);
     Material sphereMidMtl = context->createMaterial();
+
     sphereMidMtl->setClosestHitProgram(0, lambMtl);
     LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, defaultNScatter, 1 };
     sphereMidMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
@@ -146,8 +176,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     sphereRight->setPrimitiveCount(1u);
     sphereRight->setIntersectionProgram(sphereIntersect);
     sphereRight->setBoundingBoxProgram(sphereBBox);
-    sphereParams.center = make_float3(1.f, 0.f, -1.f);
-    sphereRight["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
+    sphereRight["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams + 1);
     Material sphereRightMtl = context->createMaterial();
     sphereRightMtl->setClosestHitProgram(0, metalMtl);
     MetalParams metalParams = { {0.8f, 0.6f, 0.2f}, 0.f };
@@ -158,8 +187,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     sphereLeft->setPrimitiveCount(1u);
     sphereLeft->setIntersectionProgram(sphereIntersect);
     sphereLeft->setBoundingBoxProgram(sphereBBox);
-    sphereParams.center = make_float3(-1.f, 0.f, -1.f);
-    sphereLeft["sphereParams"]->setUserData(sizeof(SphereParams), &sphereParams);
+    sphereLeft["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams + 2);
     Material sphereLeftMtl = context->createMaterial();
     sphereLeftMtl->setClosestHitProgram(0, glassMtl);
     GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f, defaultNScatter, 1 };
@@ -208,11 +236,11 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
     context["topGroup"]->set(geoGrp);
 
-    // camera
-    CamParams camParams;
-    float3 lookFrom = { 0.f, 1.f, 2.f };
-    float3 lookAt = { 0.f, 0.f, -1.f };
-    float3 up = { 0.f, 1.f, 0.f };
+    //// camera
+    //CamParams camParams;
+    //float3 lookFrom = { 0.f, 1.f, 2.f };
+    //float3 lookAt = { 0.f, 0.f, -1.f };
+    //float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
@@ -426,4 +454,54 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     context->setRayGenerationProgram(0, rayGenProgram);
   }
 
+}
+void MinimalOptiX::move(SphereParams& param, float time) {
+  float distance = param.velocity.y * time + time * time * gravity / 2.0f;
+  if (distance < param.center.y - param.radius + 0.5f) { // -0.5f is the plane
+    param.center.x += param.velocity.x * time;
+    param.center.z += param.velocity.z * time;
+    param.center.y -= distance;
+    param.velocity.y += gravity * time;
+  } else {
+    float vend = sqrt(param.velocity.y * param.velocity.y + (2.0f * gravity * (param.center.y - param.radius + 0.5f)));
+    float t = (vend - param.velocity.y) / gravity;
+    if (t < 1e-6) {
+      param.velocity.y = 0.f;
+      param.center.y = -0.5f + param.radius;
+      return;
+    }
+    param.center.x += param.velocity.x * t;
+    param.center.z += param.velocity.z * t;
+    param.center.y = -0.5f + param.radius;
+    param.velocity.x *= attenuationCoef;
+    param.velocity.y *= attenuationCoef;
+    param.velocity.y = -vend * attenuationCoef;
+    move(param, time - t);
+  }
+}
+void MinimalOptiX::animate(int ticks) {
+  for (int i = 0; i < 3; ++i) {
+    move(sphereParams[i], ticks / 1000.f);
+  }
+}
+
+void MinimalOptiX::render(SceneId sceneId) {
+  setupScene(sceneId);
+  for (uint i = 0; i < nSuperSampling; ++i) {
+    context["randSeed"]->setInt(randSeed());
+    context->launch(0, fixedWidth, fixedHeight);
+  }
+  update(ACCU_BUFFER);
+}
+
+void MinimalOptiX::record(int frames, const char* filename) {
+  std::vector<QImage> images;
+  for (int i = 0; i < frames; ++i) {
+    animate(10);
+    render(scendId);
+    //if (i % 10 == 0)
+    //  canvas.save(QString::number(i / 10) + QString(".png"));
+    images.push_back(canvas);
+  }
+  generateVideo(images, filename);
 }

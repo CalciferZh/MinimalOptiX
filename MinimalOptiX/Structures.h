@@ -18,6 +18,7 @@ struct CamParams {
 struct SphereParams {
   float radius;
   optix::float3 center;
+  optix::float3 velocity;
 };
 
 struct QuadParams {
