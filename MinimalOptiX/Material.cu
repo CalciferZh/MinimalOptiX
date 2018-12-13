@@ -133,7 +133,7 @@ RT_PROGRAM void disney() {
   if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
     baseColor = disneyParams.color;
   } else {
-		baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
+    baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
   }
   // sample
   float3 N = faceforward(shadingNormal, -ray.direction, geoNormal);
@@ -142,7 +142,7 @@ RT_PROGRAM void disney() {
   float diffuseRatio = 0.5f * (1.0f - disneyParams.metallic);
   float r1 = rand(pld.randSeed);
   float r2 = rand(pld.randSeed);
-  optix::Onb onb(N);
+  Onb onb(N);
   if (rand(pld.randSeed) < diffuseRatio) { // diffuse
     cosine_sample_hemisphere(r1, r2, L);
     onb.inverse_transform(L);
@@ -233,7 +233,6 @@ RT_PROGRAM void disney() {
 // ====================== light ==========================
 
 rtDeclareVariable(LightParams, lightParams, , );
-// NOTE: some of light's attributes need to be computed mannually
 
 RT_PROGRAM void light() {
   pld.color = lightParams.emission * clamp(dot(ray.direction, shadingNormal), 0.f, 1.f);

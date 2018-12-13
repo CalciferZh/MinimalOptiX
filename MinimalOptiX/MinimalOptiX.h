@@ -10,6 +10,7 @@
 #include <optix_world.h>
 #include <unordered_map>
 #include <exception>
+#include <map>
 #include "ui_MinimalOptiX.h"
 #include "utils_host.h"
 #include "structures.h"

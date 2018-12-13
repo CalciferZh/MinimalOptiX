@@ -336,6 +336,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
 
     std::string sceneFolder = baseSceneFolder + "coffee/";
     Scene scene((sceneFolder + "coffee.scene").c_str());
+    std::map<std::string, TextureSampler> texNameSamplerMap;
 
     Aabb aabb;
 
@@ -396,6 +397,43 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
         indexBuffer->unmap();
         geo["indexBuffer"]->set(indexBuffer);
 
+        // load texture
+        if (!scene.textures[i].empty()) {
+          if (texNameSamplerMap.find(scene.textures[i]) == texNameSamplerMap.end()) {
+            QImage img((sceneFolder + scene.textures[i]).c_str());
+
+            optix::TextureSampler sampler = context->createTextureSampler();
+            sampler->setWrapMode(0, RT_WRAP_REPEAT);
+            sampler->setWrapMode(1, RT_WRAP_REPEAT);
+            sampler->setWrapMode(2, RT_WRAP_REPEAT);
+            sampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
+            sampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
+            sampler->setMaxAnisotropy(1.f);
+            sampler->setMipLevelCount(1u);
+            sampler->setArraySize(1u);
+
+            optix::Buffer buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, img.width(), img.height());
+            float* bufferData = (float*)buffer->map();
+            for (uint i = 0; i < img.width(); ++i) {
+              for (uint j = 0; j < img.height(); ++j) {
+                float* dst = bufferData + 4 * (i * fixedWidth + j);
+                auto color = img.pixelColor(j, img.height() - i - 1);
+                dst[0] = color.redF();
+                dst[1] = color.greenF();
+                dst[2] = color.blueF();
+                dst[3] = color.alphaF();
+              }
+            }
+            buffer->unmap();
+
+            sampler->setBuffer(0u, 0u, buffer);
+            sampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+
+            texNameSamplerMap[scene.textures[i]] = sampler;
+          }
+          scene.materials[i].albedoID = texNameSamplerMap[scene.textures[i]]->getId();
+        }
+
         // load material
         Material mtl = context->createMaterial();
         if (scene.materials[i].brdf == NORMAL) {
@@ -408,7 +446,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
           glassParams.refIdx = 1.45f;
           mtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
         }
-
+        
 
         GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
         meshGroup->addChild(meshGI);

@@ -3,7 +3,6 @@
 static const int kMaxLineLength = 2048;
 
 Scene::Scene(const char* fileName) {
-  int texId = 0;
   FILE* file = fopen(fileName, "r");
 
   if (!file) {
@@ -11,6 +10,7 @@ Scene::Scene(const char* fileName) {
   }
 
   std::map<std::string, DisneyParams> materialMap;
+  std::map<std::string, std::string> textureMap;
   std::map<std::string, int> textureId;
 
   char line[kMaxLineLength];
@@ -27,11 +27,9 @@ Scene::Scene(const char* fileName) {
     // Material
     if (sscanf(line, " material %s", name) == 1) {
       printf("%s", line);
-
       DisneyParams material;
       initDisneyParams(material);
-      char texName[kMaxLineLength] = "None";
-
+      char texName[kMaxLineLength] = "";
       while (fgets(line, kMaxLineLength, file)) {
         if (strchr(line, '}')) {
           break;
@@ -52,19 +50,9 @@ Scene::Scene(const char* fileName) {
         sscanf(line, " clearcoatGloss %f", &material.clearcoatGloss);
         sscanf(line, " brdf %i", &material.brdf);
       }
-
-      // Check if texture is already seen
-      if (textureId.find(texName) != textureId.end()) {
-        material.albedoID = textureId[texName];
-      } else if (strcmp(texName, "None") != 0) {
-        texId++;
-        textureId[texName] = texId;
-        textureMap[texId - 1] = texName;
-        material.albedoID = texId;
-      }
-
-      // add material to map
+      material.albedoID = RT_TEXTURE_ID_NULL;
       materialMap[name] = material;
+      textureMap[name] = texName;
     }
 
     // Light
@@ -125,6 +113,7 @@ Scene::Scene(const char* fileName) {
         if (sscanf(line, " material %s", name) == 1) {
           if (materialMap.find(name) != materialMap.end()) {
             materials.push_back(materialMap[name]);
+            textures.push_back(textureMap[name]);
           } else {
             printf("Could not find material %s\n", name);
           }

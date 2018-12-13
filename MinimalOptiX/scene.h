@@ -2,13 +2,13 @@
 
 #include <cstdio>
 #include <map>
-#include <set>
 #include <string>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <cstdint>
 #include <optix_world.h>
+#include <QImage>
 
 #include "structures.h"
 #include "utils_host.h"
@@ -20,8 +20,8 @@ public:
   Scene(const char* fileName);
   std::vector<std::string> meshNames;
   std::vector<DisneyParams> materials;
+  std::vector<std::string> textures;
   std::vector<LightParams> lights;
-  std::map<int, std::string> textureMap;
   int width;
   int height;
 };
