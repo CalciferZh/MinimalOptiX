@@ -118,11 +118,12 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
 
 void MinimalOptiX::setupContext() {
   context = Context::create();
-  context->setRayTypeCount(1);
+  context->setRayTypeCount(2);
   context->setEntryPointCount(1);
   context->setStackSize(9608);
 
-  context["rayTypeRadiance"]->setUint(0);
+  context["rayTypeRadiance"]->setUint(RAY_TYPE_RADIANCE);
+  context["rayTypeShadow"]->setUint(RAY_TYPE_SHADOW);
   context["rayMaxDepth"]->setUint(rayMaxDepth);
   context["rayMinIntensity"]->setFloat(rayMinIntensity);
   context["rayEpsilonT"]->setFloat(rayEpsilonT);
@@ -167,7 +168,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     sphereMid["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams);
     Material sphereMidMtl = context->createMaterial();
 
-    sphereMidMtl->setClosestHitProgram(0, lambMtl);
+    sphereMidMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
     LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, defaultNScatter, 1 };
     sphereMidMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
     GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
@@ -178,7 +179,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     sphereRight->setBoundingBoxProgram(sphereBBox);
     sphereRight["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams + 1);
     Material sphereRightMtl = context->createMaterial();
-    sphereRightMtl->setClosestHitProgram(0, metalMtl);
+    sphereRightMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, metalMtl);
     MetalParams metalParams = { {0.8f, 0.6f, 0.2f}, 0.f };
     sphereRightMtl["metalParams"]->setUserData(sizeof(MetalParams), &metalParams);
     GeometryInstance sphereRightGI = context->createGeometryInstance(sphereRight, &sphereRightMtl, &sphereRightMtl + 1);
@@ -189,7 +190,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     sphereLeft->setBoundingBoxProgram(sphereBBox);
     sphereLeft["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams + 2);
     Material sphereLeftMtl = context->createMaterial();
-    sphereLeftMtl->setClosestHitProgram(0, glassMtl);
+    sphereLeftMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, glassMtl);
     GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f };
     sphereLeftMtl["glassParams"]->setUserData(sizeof(glassParams), &glassParams);
     GeometryInstance sphereLeftGI = context->createGeometryInstance(sphereLeft, &sphereLeftMtl, &sphereLeftMtl + 1);
@@ -205,7 +206,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     setQuadParams(anchor, v1, v2, quadParams);
     quadFloor["quadParams"]->setUserData(sizeof(QuadParams), &quadParams);
     Material quadFloorMtl = context->createMaterial();
-    quadFloorMtl->setClosestHitProgram(0, lambMtl);
+    quadFloorMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
     lambParams.albedo = make_float3(0.8f, 0.8f, 0.f);
     lambParams.scatterMaxDepth = 1;
     quadFloorMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
@@ -221,7 +222,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     setQuadParams(anchor, v1, v2, quadParams);
     quadLight["quadParams"]->setUserData(sizeof(QuadParams), &quadParams);
     Material quadLightMtl = context->createMaterial();
-    quadLightMtl->setClosestHitProgram(0, lightMtl);
+    quadLightMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lightMtl);
     LightParams lightParams;
     lightParams.emission = make_float3(1.f);
     quadLightMtl["lightParams"]->setUserData(sizeof(LightParams), &lightParams);
@@ -296,7 +297,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     geo["indexBuffer"]->set(indexBuffer);
 
     Material mtl = context->createMaterial();
-    mtl->setClosestHitProgram(0, lambMtl);
+    mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
     LambertianParams lambParams = { { 0.3f, 0.5f, 0.7f }, 16, 1 };
     mtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
 
@@ -352,6 +353,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
   Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
   Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
   Program disneyMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disney");
+  Program basicAnyHit = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "basicAnyHit");
 
   std::string sceneFolder = baseSceneFolder + sceneName + "/";
   Scene scene((sceneFolder + sceneName + ".scene").c_str());
@@ -371,7 +373,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
       throw std::logic_error("Cannot load mesh file.");
     }
     for (size_t s = 0; s < shapes.size(); s++) {
-      // load geometry
+      // geometry
       Geometry geo = context->createGeometry();
       geo->setPrimitiveCount(uint(shapes[s].mesh.num_face_vertices.size()));
       geo->setIntersectionProgram(meshIntersect);
@@ -414,7 +416,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
       indexBuffer->unmap();
       geo["indexBuffer"]->set(indexBuffer);
 
-      // load texture
+      // texture
       if (!scene.textures[i].empty()) {
         if (texNameSamplerMap.find(scene.textures[i]) == texNameSamplerMap.end()) {
           QImage img((sceneFolder + scene.textures[i]).c_str());
@@ -451,19 +453,20 @@ void MinimalOptiX::setupScene(const char* sceneName) {
         scene.materials[i].albedoID = texNameSamplerMap[scene.textures[i]]->getId();
       }
 
-      // load material
+      // material
       Material mtl = context->createMaterial();
       if (scene.materials[i].brdf == NORMAL) {
-        mtl->setClosestHitProgram(0, disneyMtl);
+        mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
         mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
       }
       else {
-        mtl->setClosestHitProgram(0, glassMtl);
+        mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, glassMtl);
         GlassParams glassParams;
         glassParams.albedo = scene.materials[i].color;
         glassParams.refIdx = 1.45f;
         mtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
       }
+      mtl->setAnyHitProgram(RAY_TYPE_SHADOW, basicAnyHit);
 
 
       GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
@@ -497,7 +500,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
     }
 
     Material mtl = context->createMaterial();
-    mtl->setClosestHitProgram(0, lightMtl);
+    mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lightMtl);
     mtl["lightParams"]->setUserData(sizeof(LightParams), &light);
 
     GeometryInstance gi = context->createGeometryInstance(geo, &mtl, &mtl + 1);

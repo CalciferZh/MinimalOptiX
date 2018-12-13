@@ -6,6 +6,7 @@ struct Payload {
   optix::float3 color;
   int depth;
   int randSeed;
+  bool isShadow;
 };
 
 struct CamParams {

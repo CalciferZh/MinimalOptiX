@@ -129,6 +129,9 @@ RT_PROGRAM void disney() {
     return;
   }
 
+  // TODO: sample from light directly before bsdf
+  // closest hit should be different for opaque and transparent
+
   float3 baseColor;
   if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
     baseColor = disneyParams.color;
@@ -236,4 +239,11 @@ rtDeclareVariable(LightParams, lightParams, , );
 
 RT_PROGRAM void light() {
   pld.color = lightParams.emission * clamp(dot(ray.direction, shadingNormal), 0.f, 1.f);
+}
+
+// ====================== anyhit =========================
+
+RT_PROGRAM void basicAnyHit() {
+  pld.isShadow = true;
+  rtTerminateRay();
 }

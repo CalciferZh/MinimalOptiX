@@ -23,6 +23,7 @@ class MinimalOptiX : public QMainWindow {
 public:
   enum SceneId { SCENE_BASIC_TEST, SCENE_MESH_TEST, SCENE_COFFEE, SCENE_BEDROOM };
   enum UpdateSource { OUTPUT_BUFFER, ACCU_BUFFER };
+  enum RayType { RAY_TYPE_RADIANCE, RAY_TYPE_SHADOW };
 
 	// construction
 	MinimalOptiX(QWidget *parent = Q_NULLPTR);
@@ -40,7 +41,7 @@ public:
   optix::Context context;
   
   // attributes
-  SceneId scendId = SCENE_BEDROOM;
+  SceneId scendId = SCENE_COFFEE;
   uint fixedWidths[4] = { 1024u, 800u, 800u, 1024u };
   uint fixedHeights[4] = { 512u, 1000u, 1000u, 512u };
   uint fixedWidth;
