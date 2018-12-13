@@ -146,8 +146,7 @@ RT_PROGRAM void disney() {
   if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
     baseColor = disneyParams.color;
   } else {
-		const float3 texColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
-		baseColor = make_float3(texColor.x, texColor.y, texColor.z);
+		baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
   }
   // if (disneyParams.BrdfType == NORMAL) {
   if (true) {
@@ -160,6 +159,7 @@ RT_PROGRAM void disney() {
     float r2 = rand(pld.randSeed);
     optix::Onb onb(N);
     if (rand(pld.randSeed) < diffuseRatio) { // diffuse
+      // L = geoNormal + randInUnitSphere(pld.randSeed);
       cosine_sample_hemisphere(r1, r2, L);
       onb.inverse_transform(L);
     } else { // spect
@@ -179,7 +179,7 @@ RT_PROGRAM void disney() {
     newPld.color = make_float3(1.f);
     newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
     rtTrace(topGroup, newRay, newPld);
-    pld.color *= newPld.color;
+    float3 lightColor = newPld.color;
 
     // probability for this light
     float specularAlpha = max(0.001f, disneyParams.roughness);
@@ -210,40 +210,40 @@ RT_PROGRAM void disney() {
     float3 H = normalize(L + V);
     float NDotH = dot(N, H);
     float LDotH = dot(L, H);
-    float3 Cdlin = baseColor;
-    float Cdlum = 0.3f * Cdlin.x + 0.6f * Cdlin.y + 0.1f * Cdlin.z;
-    float3 Ctint = Cdlum > 0.0f ? Cdlin / Cdlum : make_float3(1.f);
-    float3 Cspec0 = lerp(disneyParams.specular * 0.08f * lerp(make_float3(1.f), Ctint, disneyParams.specularTint), Cdlin, disneyParams.metallic);
+    float luminance = dot(baseColor, make_float3(0.3, 0.6, 0.1));
+    float3 Ctint = luminance > 0.f ? baseColor / luminance : make_float3(1.f);
+    float3 Cspec0 = lerp(disneyParams.specular * 0.08f * lerp(make_float3(1.f), Ctint, disneyParams.specularTint), baseColor, disneyParams.metallic);
     float3 Csheen = lerp(make_float3(1.f), Ctint, disneyParams.sheenTint);
-    float FL = SchlickFresnel(NDotL);
-    float FV = SchlickFresnel(NDotV);
+    float FL = schlickFresnel(NDotL);
+    float FV = schlickFresnel(NDotV);
     float Fd90 = 0.5f + 2.f * LDotH * LDotH * disneyParams.roughness;
     float Fd = lerp(1.f, Fd90, FL) * lerp(1.f, Fd90, FV);
     float Fss90 = LDotH * LDotH * disneyParams.roughness;
     float Fss = lerp(1.0f, Fss90, FL) * lerp(1.0f, Fss90, FV);
-    float ss = 1.25f * (Fss * (1.0f / (NDotL + NDotV) - 0.5f) + 0.5f);
+    float ss = 1.25f * (Fss * (1.f / (NDotL + NDotV) - 0.5f) + 0.5f);
     float aspect = sqrt(1 - disneyParams.anisotropic * 0.9f);
-    float ax = max(.001f, sqrt(disneyParams.roughness) / aspect);
-    float ay = max(.001f, sqrt(disneyParams.roughness) * aspect);
-    float3 X = { 1.f, 0.f, 0.f };
-    float3 Y = { 0.f, 1.f, 1.f };
-    float Ds = GTR2_Aniso(NDotH, dot(H, X), dot(H, Y), ax, ay);
-    // float a = max(0.001f, disneyParams.roughness);
-    // float Ds = GTR2(NDotH, a);
-    float FH = SchlickFresnel(LDotH);
-    float3 Fs = lerp(Cspec0, make_float3(1.0f), FH);
-    float roughg = sqrt(disneyParams.roughness*0.5f + 0.5f);
-    float Gs = smithG_GGX(NDotL, roughg) * smithG_GGX(NDotV, roughg);
+    float ax = max(.001f, square(disneyParams.roughness) / aspect);
+    float ay = max(.001f, square(disneyParams.roughness) * aspect);
+    float3 X = normalize(onb.m_tangent);
+    float3 Y = normalize(cross(shadingNormal, X));
+    float Ds = GTR2Aniso(NDotH, dot(H, X), dot(H, Y), ax, ay);
+    float FH = schlickFresnel(LDotH);
+    float3 Fs = lerp(Cspec0, make_float3(1.f), FH);
+    float roughg = square(disneyParams.roughness * 0.5f + 0.5f);
+    float Gs  = smithGGgxAniso(NDotL, dot(L, X), dot(L, Y), ax, ay) *
+                smithGGgxAniso(NDotV, dot(V, X), dot(V, Y), ax, ay);
     float3 Fsheen = FH * disneyParams.sheen * Csheen;
     float Dr = GTR1(NDotH, lerp(0.1f, 0.001f, disneyParams.clearcoatGloss));
-    float Fr = lerp(0.04f, 1.0f, FH);
-    float Gr = smithG_GGX(NDotL, 0.25f) * smithG_GGX(NDotV, 0.25f);
-    float3 tmpColor = ((1.0f / M_PIf) * lerp(Fd, ss, disneyParams.subsurface) * Cdlin + Fsheen)
-      * (1.0f - disneyParams.metallic)
-      + Gs * Fs * Ds + 0.25f * disneyParams.clearcoat * Gr * Fr * Dr;
-    float3 finalColor = tmpColor * clamp(dot(N, L), 0.0f, 1.0f);
+    float Fr = lerp(0.04f, 1.f, FH);
+    float Gr = smithGGgx(NDotL, 0.25f) * smithGGgx(NDotV, 0.25f);
+    float3 bsdf = ((1.0f / M_PIf) * lerp(Fd, ss, disneyParams.subsurface) * baseColor + Fsheen) * (1.0f - disneyParams.metallic) +
+                  Gs * Fs * Ds + 0.25f * disneyParams.clearcoat * Gr * Fr * Dr;
 
-    pld.color *= finalColor / pdf;
+    pld.color *= bsdf * lightColor / pdf;
+    float exp = 1.f / 2.2f;
+    pld.color.x = pow(pld.color.x, exp);
+    pld.color.y = pow(pld.color.y, exp);
+    pld.color.z = pow(pld.color.z, exp);
   } else {
     return;
   }
