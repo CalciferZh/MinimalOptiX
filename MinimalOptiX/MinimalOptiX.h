@@ -30,6 +30,7 @@ public:
 	// Utilities
   void compilePtx();
   void setupScene(SceneId sceneId);
+  void setupScene(const char* sceneName);
   void setupContext();
 	void update(UpdateSource source);
 
@@ -44,7 +45,7 @@ public:
 
   uint fixedWidth;
   uint fixedHeight;
-  uint nSuperSampling = 1024u;
+  uint nSuperSampling = 128u;
   uint rayMaxDepth = 64;
   uint defaultNScatter = 32;
   float rayMinIntensity = 0.01f;

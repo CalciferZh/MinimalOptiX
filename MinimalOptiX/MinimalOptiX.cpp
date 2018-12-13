@@ -317,191 +317,193 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-    // ======================================================================================================================
   }
   else if (sceneId == SCENE_COFFEE) {
-    // ======================================================================================================================
-    // objects
-    Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
-    Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
-    Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
-    Program quadBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadBBox");
-    Program meshIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshIntersect");
-    Program meshBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshBBox");
-    Program lambMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "lambertian");
-    Program metalMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "metal");
-    Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
-    Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
-    Program disneyMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disney");
+    setupScene("coffee");
+  }
+}
 
-    std::string sceneFolder = baseSceneFolder + "coffee/";
-    Scene scene((sceneFolder + "coffee.scene").c_str());
-    std::map<std::string, TextureSampler> texNameSamplerMap;
+void MinimalOptiX::setupScene(const char* sceneName) {
+  Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
+  Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
+  Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
+  Program quadBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadBBox");
+  Program meshIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshIntersect");
+  Program meshBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshBBox");
+  Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
+  Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
+  Program disneyMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disney");
 
-    Aabb aabb;
+  std::string sceneFolder = baseSceneFolder + sceneName + "/";
+  Scene scene((sceneFolder + sceneName + ".scene").c_str());
+  std::map<std::string, TextureSampler> texNameSamplerMap;
 
-    GeometryGroup meshGroup = context->createGeometryGroup();
-    meshGroup->setAcceleration(context->createAcceleration("Trbvh"));
-    for (int i = 0; i < scene.meshNames.size(); ++i) {
-      tinyobj::attrib_t attrib;
-      std::vector<tinyobj::shape_t> shapes;
-      std::vector<tinyobj::material_t> materials;
-      std::string warn;
-      std::string err;
-      bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (sceneFolder + scene.meshNames[i]).c_str());
-      if (!err.empty() || !ret) {
-        std::cerr << err << std::endl;
-        throw std::logic_error("Cannot load mesh file.");
-      }
-      for (size_t s = 0; s < shapes.size(); s++) {
-        // load geometry
-        Geometry geo = context->createGeometry();
-        geo->setPrimitiveCount(uint(shapes[s].mesh.num_face_vertices.size()));
-        geo->setIntersectionProgram(meshIntersect);
-        geo->setBoundingBoxProgram(meshBBox);
+  Aabb aabb;
 
-        Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.vertices.size());
-        memcpy(vertexBuffer->map(), attrib.vertices.data(), sizeof(float) * attrib.vertices.size());
-        vertexBuffer->unmap();
-        geo["vertexBuffer"]->set(vertexBuffer);
-
-        Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
-        if (!attrib.normals.empty()) {
-          memcpy(normalBuffer->map(), attrib.normals.data(), sizeof(float) * attrib.normals.size());
-          normalBuffer->unmap();
-        }
-        geo["normalBuffer"]->set(normalBuffer);
-
-        Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size());
-        if (!attrib.texcoords.empty()) {
-          memcpy(texcoordBuffer->map(), attrib.texcoords.data(), sizeof(float) * attrib.texcoords.size());
-          texcoordBuffer->unmap();
-        }
-        geo["texcoordBuffer"]->set(texcoordBuffer);
-
-        Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.num_face_vertices.size());
-        int* indexBufDst = (int*)indexBuffer->map();
-        for (int f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-          if (shapes[s].mesh.num_face_vertices[f] != 3) {
-            throw std::logic_error("Face's number of vertices != 3");
-          }
-          for (int fv = 0; fv < 3; ++fv) {
-            auto idx = shapes[s].mesh.indices[f * 3 + fv];
-            indexBufDst[f * 3 + fv] = idx.vertex_index;
-            tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
-            tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
-            tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
-            aabb.include(make_float3(vx, vy, vz));
-          }
-        }
-        indexBuffer->unmap();
-        geo["indexBuffer"]->set(indexBuffer);
-
-        // load texture
-        if (!scene.textures[i].empty()) {
-          if (texNameSamplerMap.find(scene.textures[i]) == texNameSamplerMap.end()) {
-            QImage img((sceneFolder + scene.textures[i]).c_str());
-
-            optix::TextureSampler sampler = context->createTextureSampler();
-            sampler->setWrapMode(0, RT_WRAP_REPEAT);
-            sampler->setWrapMode(1, RT_WRAP_REPEAT);
-            sampler->setWrapMode(2, RT_WRAP_REPEAT);
-            sampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
-            sampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
-            sampler->setMaxAnisotropy(1.f);
-            sampler->setMipLevelCount(1u);
-            sampler->setArraySize(1u);
-
-            optix::Buffer buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, img.width(), img.height());
-            float* bufferData = (float*)buffer->map();
-            for (uint i = 0; i < img.width(); ++i) {
-              for (uint j = 0; j < img.height(); ++j) {
-                float* dst = bufferData + 4 * (i * fixedWidth + j);
-                auto color = img.pixelColor(j, img.height() - i - 1);
-                dst[0] = color.redF();
-                dst[1] = color.greenF();
-                dst[2] = color.blueF();
-                dst[3] = color.alphaF();
-              }
-            }
-            buffer->unmap();
-
-            sampler->setBuffer(0u, 0u, buffer);
-            sampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
-
-            texNameSamplerMap[scene.textures[i]] = sampler;
-          }
-          scene.materials[i].albedoID = texNameSamplerMap[scene.textures[i]]->getId();
-        }
-
-        // load material
-        Material mtl = context->createMaterial();
-        if (scene.materials[i].brdf == NORMAL) {
-          mtl->setClosestHitProgram(0, disneyMtl);
-          mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
-        } else {
-          mtl->setClosestHitProgram(0, glassMtl);
-          GlassParams glassParams;
-          glassParams.albedo = scene.materials[i].color;
-          glassParams.refIdx = 1.45f;
-          mtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
-        }
-        
-
-        GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
-        meshGroup->addChild(meshGI);
-      }
+  GeometryGroup meshGroup = context->createGeometryGroup();
+  meshGroup->setAcceleration(context->createAcceleration("Trbvh"));
+  for (int i = 0; i < scene.meshNames.size(); ++i) {
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn;
+    std::string err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (sceneFolder + scene.meshNames[i]).c_str());
+    if (!err.empty() || !ret) {
+      std::cerr << err << std::endl;
+      throw std::logic_error("Cannot load mesh file.");
     }
-
-    // lights
-    GeometryGroup lightGroup = context->createGeometryGroup();
-    lightGroup->setAcceleration(context->createAcceleration("Trbvh"));
-    for (auto& light : scene.lights) {
+    for (size_t s = 0; s < shapes.size(); s++) {
+      // load geometry
       Geometry geo = context->createGeometry();
-      geo->setPrimitiveCount(1u);
-      if (light.shape == SPHERE) {
-        geo->setIntersectionProgram(sphereIntersect);
-        geo->setBoundingBoxProgram(sphereBBox);
-        SphereParams params;
-        params.radius = light.radius;
-        params.center = light.position;
-        geo["sphereParams"]->setUserData(sizeof(SphereParams), &params);
-      } else if (light.shape == QUAD) {
-        geo->setIntersectionProgram(quadIntersect);
-        geo->setBoundingBoxProgram(quadBBox);
-        QuadParams params;
-        setQuadParams(light.position, light.u, light.v, params);
-        geo["quadParams"]->setUserData(sizeof(QuadParams), &params);
-      } else {
-        throw std::logic_error("No shape for light.");
+      geo->setPrimitiveCount(uint(shapes[s].mesh.num_face_vertices.size()));
+      geo->setIntersectionProgram(meshIntersect);
+      geo->setBoundingBoxProgram(meshBBox);
+
+      Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.vertices.size());
+      memcpy(vertexBuffer->map(), attrib.vertices.data(), sizeof(float) * attrib.vertices.size());
+      vertexBuffer->unmap();
+      geo["vertexBuffer"]->set(vertexBuffer);
+
+      Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
+      if (!attrib.normals.empty()) {
+        memcpy(normalBuffer->map(), attrib.normals.data(), sizeof(float) * attrib.normals.size());
+        normalBuffer->unmap();
+      }
+      geo["normalBuffer"]->set(normalBuffer);
+
+      Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size());
+      if (!attrib.texcoords.empty()) {
+        memcpy(texcoordBuffer->map(), attrib.texcoords.data(), sizeof(float) * attrib.texcoords.size());
+        texcoordBuffer->unmap();
+      }
+      geo["texcoordBuffer"]->set(texcoordBuffer);
+
+      Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.num_face_vertices.size());
+      int* indexBufDst = (int*)indexBuffer->map();
+      for (int f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+        if (shapes[s].mesh.num_face_vertices[f] != 3) {
+          throw std::logic_error("Face's number of vertices != 3");
+        }
+        for (int fv = 0; fv < 3; ++fv) {
+          auto idx = shapes[s].mesh.indices[f * 3 + fv];
+          indexBufDst[f * 3 + fv] = idx.vertex_index;
+          tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+          tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+          tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+          aabb.include(make_float3(vx, vy, vz));
+        }
+      }
+      indexBuffer->unmap();
+      geo["indexBuffer"]->set(indexBuffer);
+
+      // load texture
+      if (!scene.textures[i].empty()) {
+        if (texNameSamplerMap.find(scene.textures[i]) == texNameSamplerMap.end()) {
+          QImage img((sceneFolder + scene.textures[i]).c_str());
+
+          optix::TextureSampler sampler = context->createTextureSampler();
+          sampler->setWrapMode(0, RT_WRAP_REPEAT);
+          sampler->setWrapMode(1, RT_WRAP_REPEAT);
+          sampler->setWrapMode(2, RT_WRAP_REPEAT);
+          sampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
+          sampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
+          sampler->setMaxAnisotropy(1.f);
+          sampler->setMipLevelCount(1u);
+          sampler->setArraySize(1u);
+
+          optix::Buffer buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, img.width(), img.height());
+          float* bufferData = (float*)buffer->map();
+          for (uint i = 0; i < img.width(); ++i) {
+            for (uint j = 0; j < img.height(); ++j) {
+              float* dst = bufferData + 4 * (i * fixedWidth + j);
+              auto color = img.pixelColor(j, img.height() - i - 1);
+              dst[0] = color.redF();
+              dst[1] = color.greenF();
+              dst[2] = color.blueF();
+              dst[3] = color.alphaF();
+            }
+          }
+          buffer->unmap();
+
+          sampler->setBuffer(0u, 0u, buffer);
+          sampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+
+          texNameSamplerMap[scene.textures[i]] = sampler;
+        }
+        scene.materials[i].albedoID = texNameSamplerMap[scene.textures[i]]->getId();
       }
 
+      // load material
       Material mtl = context->createMaterial();
-      mtl->setClosestHitProgram(0, lightMtl);
-      mtl["lightParams"]->setUserData(sizeof(LightParams), &light);
+      if (scene.materials[i].brdf == NORMAL) {
+        mtl->setClosestHitProgram(0, disneyMtl);
+        mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
+      }
+      else {
+        mtl->setClosestHitProgram(0, glassMtl);
+        GlassParams glassParams;
+        glassParams.albedo = scene.materials[i].color;
+        glassParams.refIdx = 1.45f;
+        mtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
+      }
 
-      GeometryInstance gi = context->createGeometryInstance(geo, &mtl, &mtl + 1);
-      lightGroup->addChild(gi);
+
+      GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
+      meshGroup->addChild(meshGI);
     }
-
-    Group topGroup = context->createGroup();
-    topGroup->setAcceleration(context->createAcceleration("Trbvh"));
-    topGroup->addChild(meshGroup);
-    topGroup->addChild(lightGroup);
-    context["topGroup"]->set(topGroup);
-
-    // camera
-    CamParams camParams;
-    float3 lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
-    float3 lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
-    float3 up = { 0.f, 1.f, 0.f };
-    setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
-    Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
-    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
-    context->setRayGenerationProgram(0, rayGenProgram);
   }
 
+  // lights
+  GeometryGroup lightGroup = context->createGeometryGroup();
+  lightGroup->setAcceleration(context->createAcceleration("Trbvh"));
+  for (auto& light : scene.lights) {
+    Geometry geo = context->createGeometry();
+    geo->setPrimitiveCount(1u);
+    if (light.shape == SPHERE) {
+      geo->setIntersectionProgram(sphereIntersect);
+      geo->setBoundingBoxProgram(sphereBBox);
+      SphereParams params;
+      params.radius = light.radius;
+      params.center = light.position;
+      geo["sphereParams"]->setUserData(sizeof(SphereParams), &params);
+    }
+    else if (light.shape == QUAD) {
+      geo->setIntersectionProgram(quadIntersect);
+      geo->setBoundingBoxProgram(quadBBox);
+      QuadParams params;
+      setQuadParams(light.position, light.u, light.v, params);
+      geo["quadParams"]->setUserData(sizeof(QuadParams), &params);
+    }
+    else {
+      throw std::logic_error("No shape for light.");
+    }
+
+    Material mtl = context->createMaterial();
+    mtl->setClosestHitProgram(0, lightMtl);
+    mtl["lightParams"]->setUserData(sizeof(LightParams), &light);
+
+    GeometryInstance gi = context->createGeometryInstance(geo, &mtl, &mtl + 1);
+    lightGroup->addChild(gi);
+  }
+
+  Group topGroup = context->createGroup();
+  topGroup->setAcceleration(context->createAcceleration("Trbvh"));
+  topGroup->addChild(meshGroup);
+  topGroup->addChild(lightGroup);
+  context["topGroup"]->set(topGroup);
+
+  // camera
+  CamParams camParams;
+  float3 lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
+  float3 lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
+  float3 up = { 0.f, 1.f, 0.f };
+  setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
+  Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+  rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+  context->setRayGenerationProgram(0, rayGenProgram);
 }
+
 void MinimalOptiX::move(SphereParams& param, float time) {
   float distance = param.velocity.y * time + time * time * gravity / 2.0f;
   if (distance < param.center.y - param.radius + 0.5f) { // -0.5f is the plane
@@ -526,6 +528,7 @@ void MinimalOptiX::move(SphereParams& param, float time) {
     move(param, time - t);
   }
 }
+
 void MinimalOptiX::animate(int ticks) {
   for (int i = 0; i < 3; ++i) {
     move(sphereParams[i], ticks / 1000.f);
