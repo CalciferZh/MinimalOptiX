@@ -24,6 +24,6 @@ void setCamParams(optix::float3& lookFrom, optix::float3& lookAt, optix::float3&
 
 void initDisneyParams(DisneyParams& disneyParams);
 
-int randSeed();
-
 void generateVideo(std::vector<QImage>& images, const char*);
+
+int randSeed();

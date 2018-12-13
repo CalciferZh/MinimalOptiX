@@ -32,7 +32,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
     context->launch(0, fixedWidth, fixedHeight);
   }
   update(ACCU_BUFFER);
-  record(50, "sample_1.mpg");
+  //record(50, "sample_1.mpg");
 }
 
 void MinimalOptiX::compilePtx() {
@@ -445,8 +445,8 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
 
     // camera
     CamParams camParams;
-    float3 lookFrom = make_float3(0.f, 0.21 * aabb.extent(1), 0.25 * aabb.extent(2));
-    float3 lookAt = lookFrom + make_float3(0.f, 0.f, -1.f);
+    float3 lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
+    float3 lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
     float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");

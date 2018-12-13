@@ -65,7 +65,7 @@ public:
   optix::float3 up = { 0.f, 1.f, 0.f };
 
   // scene
-  SceneId scendId = SCENE_BASIC_TEST;
+  SceneId scendId = SCENE_COFFEE;
 
   // for animation
   const float gravity = 9.8f;
