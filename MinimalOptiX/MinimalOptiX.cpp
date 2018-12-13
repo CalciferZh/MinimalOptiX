@@ -320,6 +320,25 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
   }
   else if (sceneId == SCENE_COFFEE) {
     setupScene("coffee");
+    CamParams camParams;
+    float3 lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
+    float3 lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
+    float3 up = { 0.f, 1.f, 0.f };
+    setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
+    Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+    context->setRayGenerationProgram(0, rayGenProgram);
+  }
+  else if (sceneId == SCENE_BEDROOM) {
+    setupScene("bedroom");
+    CamParams camParams;
+    float3 lookFrom = aabb.center() + make_float3(0.3f, 0.1f, 0.45f) * aabb.extent();
+    float3 lookAt = aabb.center() + make_float3(0.05f, -0.1f, 0.f) * aabb.extent();
+    float3 up = { 0.f, 1.f, 0.f };
+    setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
+    Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+    context->setRayGenerationProgram(0, rayGenProgram);
   }
 }
 
@@ -337,8 +356,6 @@ void MinimalOptiX::setupScene(const char* sceneName) {
   std::string sceneFolder = baseSceneFolder + sceneName + "/";
   Scene scene((sceneFolder + sceneName + ".scene").c_str());
   std::map<std::string, TextureSampler> texNameSamplerMap;
-
-  Aabb aabb;
 
   GeometryGroup meshGroup = context->createGeometryGroup();
   meshGroup->setAcceleration(context->createAcceleration("Trbvh"));
@@ -414,10 +431,10 @@ void MinimalOptiX::setupScene(const char* sceneName) {
 
           optix::Buffer buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, img.width(), img.height());
           float* bufferData = (float*)buffer->map();
-          for (uint i = 0; i < img.width(); ++i) {
-            for (uint j = 0; j < img.height(); ++j) {
-              float* dst = bufferData + 4 * (i * fixedWidth + j);
-              auto color = img.pixelColor(j, img.height() - i - 1);
+          for (int i = 0; i < img.width(); ++i) {
+            for (int j = 0; j < img.height(); ++j) {
+              float* dst = bufferData + 4 * (j * img.width() + i);
+              auto color = img.pixelColor(i, j);
               dst[0] = color.redF();
               dst[1] = color.greenF();
               dst[2] = color.blueF();
@@ -492,16 +509,6 @@ void MinimalOptiX::setupScene(const char* sceneName) {
   topGroup->addChild(meshGroup);
   topGroup->addChild(lightGroup);
   context["topGroup"]->set(topGroup);
-
-  // camera
-  CamParams camParams;
-  float3 lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
-  float3 lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
-  float3 up = { 0.f, 1.f, 0.f };
-  setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
-  Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
-  rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
-  context->setRayGenerationProgram(0, rayGenProgram);
 }
 
 void MinimalOptiX::move(SphereParams& param, float time) {

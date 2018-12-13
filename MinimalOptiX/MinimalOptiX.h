@@ -21,10 +21,10 @@ class MinimalOptiX : public QMainWindow {
 	Q_OBJECT
 
 public:
-  enum SceneId { SCENE_BASIC_TEST, SCENE_MESH_TEST, SCENE_COFFEE };
+  enum SceneId { SCENE_BASIC_TEST, SCENE_MESH_TEST, SCENE_COFFEE, SCENE_BEDROOM };
   enum UpdateSource { OUTPUT_BUFFER, ACCU_BUFFER };
 
-	//ruction
+	// construction
 	MinimalOptiX(QWidget *parent = Q_NULLPTR);
 
 	// Utilities
@@ -34,22 +34,23 @@ public:
   void setupContext();
 	void update(UpdateSource source);
 
-	// Components
+	// components
 	QGraphicsScene qgscene;
 	QImage canvas;
   optix::Context context;
-
-  uint fixedWidths[3] = { 1024u, 800u, 800u };
-  uint fixedHeights[3] = { 512u, 1000u, 1000u };
-  // Attributes
-
+  
+  // attributes
+  SceneId scendId = SCENE_BEDROOM;
+  uint fixedWidths[4] = { 1024u, 800u, 800u, 1024u };
+  uint fixedHeights[4] = { 512u, 1000u, 1000u, 512u };
   uint fixedWidth;
   uint fixedHeight;
-  uint nSuperSampling = 128u;
+  uint nSuperSampling = 256u;
   uint rayMaxDepth = 64;
   uint defaultNScatter = 32;
   float rayMinIntensity = 0.01f;
   float rayEpsilonT = 0.001f;
+  optix::Aabb aabb;
   std::map<std::string, std::string> ptxStrs;
   std::string baseSceneFolder = "scenes/";
 
@@ -66,19 +67,15 @@ public:
   optix::float3 lookAt = { 0.f, 0.f, -1.f };
   optix::float3 up = { 0.f, 1.f, 0.f };
 
-  // scene
-  SceneId scendId = SCENE_COFFEE;
-
-  // for animation
+  // animation
   const float gravity = 9.8f;
   const float attenuationCoef = 0.95f;
   SphereParams sphereParams[3] = { { 0.5f, { 0.f, 0.5f, -1.f }, { 0.f, 0.f, 0.f } } ,
                                    { 0.4f, { 1.f, 0.5f, -1.f }, { 0.f, 0.5f, 0.f } } ,
                                    { 0.3f, { -1.f, 0.5f, -1.f }, { 0.f, -1.5f, 0.f } } };
 
-  // User Interface
+  // user interface
   void keyPressEvent(QKeyEvent* e);
-
   void record(int frames, const char* filename);
 
 private:
