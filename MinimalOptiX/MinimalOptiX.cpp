@@ -32,6 +32,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
     context->launch(0, fixedWidth, fixedHeight);
   }
   update(ACCU_BUFFER);
+  saveCurrentFrame();
   //record(50, "sample_1.mpg");
 }
 
@@ -82,16 +83,20 @@ void MinimalOptiX::update(UpdateSource source) {
   ui.view->update();
 }
 
+void MinimalOptiX::saveCurrentFrame() {
+  canvas.save(QString::number(QDateTime::currentMSecsSinceEpoch()) + QString(".png"));
+  QMessageBox::information(
+    this,
+    "Save",
+    "Image saved!",
+    QMessageBox::Ok
+  );
+}
+
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
   switch (e->key()) {
   case Qt::Key_Space:
-    canvas.save(QString::number(QDateTime::currentMSecsSinceEpoch()) + QString(".png"));
-    QMessageBox::information(
-      this,
-      "Save",
-      "Image saved!",
-      QMessageBox::Ok
-    );
+    saveCurrentFrame();
     break;
   case Qt::Key_Return:
     animate(100);

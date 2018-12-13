@@ -34,6 +34,7 @@ public:
   void setupScene(const char* sceneName);
   void setupContext();
 	void update(UpdateSource source);
+  void saveCurrentFrame();
 
 	// components
 	QGraphicsScene qgscene;
