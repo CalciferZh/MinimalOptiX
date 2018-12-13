@@ -43,7 +43,7 @@ public:
 
   uint fixedWidth;
   uint fixedHeight;
-  uint nSuperSampling = 4096u;
+  uint nSuperSampling = 1024u;
   uint rayMaxDepth = 64;
   uint defaultNScatter = 32;
   float rayMinIntensity = 0.01f;
