@@ -132,35 +132,34 @@ __device__ __inline__ float GTR2(float NDotH, float a) {
   return a2 / (M_PIf * t*t);
 }
 
-__device__ __inline__ float GTR2Aniso(float ndoth, float hdotx, float hdoty, float ax, float ay) {
-	float hdotxa2 = (hdotx / ax);
-	hdotxa2 *= hdotxa2;
-	float hdotya2 = (hdoty / ay);
-	hdotya2 *= hdotya2;
-	float denom = hdotxa2 + hdotya2 + ndoth * ndoth;
-	return denom > 1e-5 ? (1.f / (M_PIf * ax * ay * denom * denom)) : 0.f;
-}
-
-__device__ __inline__ float schlickFresnel(float u) {
-  float m = clamp(1.f-u, 0.f, 1.f);
-  float m2 = m * m;
-  return m2 * m2 * m;
-}
-
-__device__ __inline__ float smithGGgx(float NDotv, float alphaG) {
-  float a = alphaG * alphaG;
-  float b = NDotv * NDotv;
-  return 1.f / (NDotv + sqrtf(a + b - a * b));
-}
-
 __device__  __inline__ float square(float x) {
   return x * x;
 }
 
+__device__ __inline__ float GTR2Aniso(float NdotH, float HdotX, float HdotY, float ax, float ay) {
+  return 1 / (M_PIf * ax * ay * square(square(HdotX / ax) + square(HdotY / ay) + NdotH * NdotH));
+}
+
+__device__ __inline__ float schlickFresnel(float u) {
+  float m = clamp(1.f - u, 0.f, 1.f);
+  float m2 = m * m;
+  return m2 * m2 * m;
+}
+
+__device__ __inline__ float smithGGgx(float NdotV, float alphaG) {
+  float a = alphaG * alphaG;
+  float b = NdotV * NdotV;
+  return 1.f / (NdotV + sqrtf(a + b - a * b));
+}
+
 __device__ __inline__ float smithGGgxAniso(float NdotV, float VdotX, float VdotY, float ax, float ay) {
-    return 1.0 / (NdotV + sqrt( square(VdotX*ax) + square(VdotY*ay) + square(NdotV) ));
+    return 1.0 / (NdotV + sqrt(square(VdotX * ax) + square(VdotY * ay) + square(NdotV)));
 }
 
 __device__ __inline__ float3 logf(float3 v) {
   return make_float3(logf(v.x), logf(v.y), logf(v.z));
+}
+
+float3 mon2lin(float3 v) {
+  return make_float3(pow(v.x, 2.2f), pow(v.y, 2.2f), pow(v.z, 2.2f));
 }
