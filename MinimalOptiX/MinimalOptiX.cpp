@@ -139,6 +139,8 @@ void MinimalOptiX::setupContext() {
   Buffer outputBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
   context["outputBuffer"]->set(outputBuffer);
   Buffer accuBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT3, fixedWidth, fixedHeight);
+  memset((float*)accuBuffer->map(), 0, sizeof(float) * 3 * fixedWidth * fixedHeight);
+  accuBuffer->unmap();
   context["accuBuffer"]->set(accuBuffer);
 
   // Exception
