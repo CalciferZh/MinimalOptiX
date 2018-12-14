@@ -32,7 +32,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
     context->launch(0, fixedWidth, fixedHeight);
   }
   update(ACCU_BUFFER);
-  saveCurrentFrame();
+  //saveCurrentFrame();
   //record(50, "sample_1.mpg");
 }
 

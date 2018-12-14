@@ -227,10 +227,10 @@ RT_PROGRAM void disney() {
                 Gs * Fs * Ds + 0.25f * disneyParams.clearcoat * Gr * Fr * Dr;
 
   pld.color = bsdf * lightColor / pdf;
-  float exp = 1.f / 2.2f;
-  pld.color.x = pow(pld.color.x, exp);
-  pld.color.y = pow(pld.color.y, exp);
-  pld.color.z = pow(pld.color.z, exp);
+  // float exp = 1.f / 2.2f;
+  // pld.color.x = pow(pld.color.x, exp);
+  // pld.color.y = pow(pld.color.y, exp);
+  // pld.color.z = pow(pld.color.z, exp);
 }
 
 // ====================== light ==========================
