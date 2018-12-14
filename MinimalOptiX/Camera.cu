@@ -36,10 +36,6 @@ RT_PROGRAM void pinholeCamera() {
 
   rtTrace(topGroup, ray, pld);
 
-  float expo = 1.f / 2.2f;
-  pld.color.x = pow(pld.color.x, expo);
-  pld.color.y = pow(pld.color.y, expo);
-  pld.color.z = pow(pld.color.z, expo);
   pld.color = clamp(pld.color, make_float3(0.f), make_float3(1.f));
 
   accuBuffer[launchIdx] += pld.color;
