@@ -11,6 +11,7 @@ rtDeclareVariable(Ray, ray, rtCurrentRay, );
 rtDeclareVariable(rtObject, topGroup, , );
 rtDeclareVariable(uint, rayMaxDepth, , );
 rtDeclareVariable(uint, rayTypeRadiance, , );
+rtDeclareVariable(uint, rayTypeShadow, , );
 rtDeclareVariable(float, t, rtIntersectionDistance, );
 rtDeclareVariable(float, rayEpsilonT, , );
 rtDeclareVariable(float, rayMinIntensity, , );
@@ -131,6 +132,16 @@ RT_PROGRAM void disney() {
     return;
   }
 
+  float3 N, L, V, H;
+  N = faceforward(shadingNormal, -ray.direction, geoNormal);
+  V = -ray.direction;
+  float3 baseColor;
+  if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
+    baseColor = disneyParams.color;
+  } else {
+    baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
+  }
+
   if (disneyParams.brdfType == GLASS) {
     float3 normal = shadingNormal;
     float cosThetaI = -dot(ray.direction, normal);
@@ -163,18 +174,45 @@ RT_PROGRAM void disney() {
       newRay.direction = refracted;
     }
     rtTrace(topGroup, newRay, newPld);
-    pld.color = newPld.color * disneyParams.color;
+    pld.color = newPld.color * baseColor;
     return;
   }
 
   // direct light sample
   float3 directLightColor = make_float3(0.f);
-
+  int lightIdx = int(rand(pld.randSeed) * (float)lights.size());
+  LightParams light = lights[lightIdx];
+  float3 pointOnLight;
+  float3 normalOnLight;
+  if (light.shape == SPHERE) {
+    pointOnLight = light.position + randInUnitSphere(pld.randSeed) * light.radius;
+    normalOnLight = normalize(pointOnLight - light.position);
+  } else {
+    pointOnLight = light.position + light.u * rand(pld.randSeed) + light.v * rand(pld.randSeed);
+    normalOnLight = normalize(light.normal);
+  }
+  L = pointOnLight - frontHitPoint;
+  float lightDst = length(L);
+  L = normalize(L);
+  if (dot(L, N) > 0.f && dot(L, normalOnLight) < 0.f) {
+    Ray newRay(frontHitPoint, L, rayTypeShadow, rayEpsilonT, lightDst - rayEpsilonT);
+    Payload newPld;
+    newPld.depth = pld.depth + 1;
+    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
+    newPld.attenuation = make_float3(1.f);
+    rtTrace(topGroup, newRay, newPld);
+    if (length(newPld.attenuation)) {
+      H = normalize(L + V);
+      // pdf to hit that light
+      float lightPdf = lightDst * lightDst / light.area / dot(normalOnLight, -L);
+      // pdf from this object
+      float objPdf = disneyPdf(disneyParams, N, L, V, H);
+      float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
+      directLightColor = brdf * light.emission * (float)lights.size() / max(0.001f, lightPdf * objPdf);
+    }
+  }
 
   // random sample
-  float3 N, L, V, H;
-  N = faceforward(shadingNormal, -ray.direction, geoNormal);
-  V = -ray.direction;
   disneySample(pld.randSeed, disneyParams, N, L, V, H);
   if (dot(N, L) <= 0.0f || dot(N, V) <= 0.0f) {
     pld.color = make_float3(0.f);
@@ -195,26 +233,20 @@ RT_PROGRAM void disney() {
     return;
   }
 
-
-  float3 baseColor;
-  if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
-    baseColor = disneyParams.color;
-  } else {
-    baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
-  }
   float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
-  float3 randomSampleColor = brdf * newPld.color / pdf;
+  float3 indirectColor = brdf * newPld.color / pdf;
 
-  pld.color = randomSampleColor + directLightColor;
+  // pld.color = directLightColor;
+  pld.color = indirectColor + directLightColor;
 }
 
 RT_PROGRAM void disneyAnyHit() {
   if (disneyParams.brdfType == GLASS) {
-    pld.attenuation = disneyParams.color;
+    pld.attenuation *= disneyParams.color;
   } else {
     pld.attenuation = make_float3(0.f);
+    rtTerminateRay();
   }
-  rtTerminateRay();
 }
 
 // ====================== light ==========================

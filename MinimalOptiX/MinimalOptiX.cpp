@@ -428,7 +428,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
         if (texNameSamplerMap.find(scene.textures[i]) == texNameSamplerMap.end()) {
           QImage img((sceneFolder + scene.textures[i]).c_str());
 
-          optix::TextureSampler sampler = context->createTextureSampler();
+          TextureSampler sampler = context->createTextureSampler();
           sampler->setWrapMode(0, RT_WRAP_REPEAT);
           sampler->setWrapMode(1, RT_WRAP_REPEAT);
           sampler->setWrapMode(2, RT_WRAP_REPEAT);
@@ -438,7 +438,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
           sampler->setMipLevelCount(1u);
           sampler->setArraySize(1u);
 
-          optix::Buffer buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, img.width(), img.height());
+          Buffer buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, img.width(), img.height());
           float* bufferData = (float*)buffer->map();
           for (int i = 0; i < img.width(); ++i) {
             for (int j = 0; j < img.height(); ++j) {
@@ -463,8 +463,8 @@ void MinimalOptiX::setupScene(const char* sceneName) {
       // material
       Material mtl = context->createMaterial();
       mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
-      mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
       mtl->setAnyHitProgram(RAY_TYPE_SHADOW, disneyAnyHit);
+      mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
 
       GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
       meshGroup->addChild(meshGI);
@@ -503,6 +503,16 @@ void MinimalOptiX::setupScene(const char* sceneName) {
     GeometryInstance gi = context->createGeometryInstance(geo, &mtl, &mtl + 1);
     lightGroup->addChild(gi);
   }
+
+  Buffer lightBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  lightBuffer->setElementSize(sizeof(LightParams));
+  lightBuffer->setSize(scene.lights.size());
+  LightParams* lightBufData = (LightParams*)lightBuffer->map();
+  for (int i = 0; i < scene.lights.size(); ++i) {
+    memcpy(lightBufData + i, &(scene.lights[i]), sizeof(LightParams));
+  }
+  lightBuffer->unmap();
+  context["lights"]->setBuffer(lightBuffer);
 
   Group topGroup = context->createGroup();
   topGroup->setAcceleration(context->createAcceleration("Trbvh"));
