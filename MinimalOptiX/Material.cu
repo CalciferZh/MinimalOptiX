@@ -1,5 +1,6 @@
 #include <optix_world.h>
 #include "structures.h"
+#include "disney.h"
 #include "utils_device.h"
 
 using namespace optix;
