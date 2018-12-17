@@ -55,11 +55,7 @@ __device__ __inline__ float3 disneyEval(DisneyParams& disneyParams, float3& base
   float Cdlum = dot(Cdlin, make_float3(0.3, 0.6, 0.1));
   float3 Ctint = Cdlum > 0.f ? Cdlin / Cdlum : make_float3(1.f);
   float3 Cspec0 = lerp(
-    disneyParams.specular * 0.08f * lerp(
-                                      make_float3(1.f),
-                                      Ctint,
-                                      disneyParams.specularTint
-                                    ),
+    disneyParams.specular * 0.08f * lerp(make_float3(1.f), Ctint, disneyParams.specularTint),
     Cdlin,
     disneyParams.metallic
   );

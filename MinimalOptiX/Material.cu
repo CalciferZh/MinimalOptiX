@@ -131,9 +131,47 @@ RT_PROGRAM void disney() {
     return;
   }
 
-  // TODO: sample from light directly before bsdf
-  // closest hit should be different for opaque and transparent
+  if (disneyParams.brdfType == GLASS) {
+    float3 normal = shadingNormal;
+    float cosThetaI = -dot(ray.direction, normal);
+    float refIdx;
+    if (cosThetaI > 0.f) {
+      refIdx = 1.4f;
+    } else {
+      refIdx = 1.f / 1.4f;
+      cosThetaI = -cosThetaI;
+      normal = -normal;
+    }
 
+    float3 refracted;
+    float totalReflection = !refract(refracted, ray.direction, normal, refIdx);
+    float cosThetaT = -dot(normal, refracted);
+    float reflectProb =  totalReflection ? 1.f : fresnel(cosThetaI, cosThetaT, refIdx);
+    Ray newRay;
+    newRay.ray_type = rayTypeRadiance;
+    newRay.tmin = rayEpsilonT;
+    newRay.tmax = RT_DEFAULT_MAX;
+    Payload newPld;
+    newPld.depth = pld.depth + 1;
+    newPld.color = make_float3(1.f, 1.f, 1.f);
+    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
+    if (rand(pld.randSeed) < reflectProb) {
+      newRay.origin = frontHitPoint;
+      newRay.direction = reflect(ray.direction, normal);
+    } else {
+      newRay.origin = backHitPoint;
+      newRay.direction = refracted;
+    }
+    rtTrace(topGroup, newRay, newPld);
+    pld.color = newPld.color * disneyParams.color;
+    return;
+  }
+
+  // direct light sample
+  float3 directLightColor = make_float3(0.f);
+
+
+  // random sample
   float3 N, L, V, H;
   N = faceforward(shadingNormal, -ray.direction, geoNormal);
   V = -ray.direction;
@@ -157,6 +195,7 @@ RT_PROGRAM void disney() {
     return;
   }
 
+
   float3 baseColor;
   if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
     baseColor = disneyParams.color;
@@ -164,8 +203,18 @@ RT_PROGRAM void disney() {
     baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
   }
   float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
+  float3 randomSampleColor = brdf * newPld.color / pdf;
 
-  pld.color = brdf * newPld.color / pdf;
+  pld.color = randomSampleColor + directLightColor;
+}
+
+RT_PROGRAM void disneyAnyHit() {
+  if (disneyParams.brdfType == GLASS) {
+    pld.attenuation = disneyParams.color;
+  } else {
+    pld.attenuation = make_float3(0.f);
+  }
+  rtTerminateRay();
 }
 
 // ====================== light ==========================
@@ -173,12 +222,6 @@ RT_PROGRAM void disney() {
 rtDeclareVariable(LightParams, lightParams, , );
 
 RT_PROGRAM void light() {
-  pld.color = lightParams.emission;// * clamp(dot(ray.direction, shadingNormal), 0.f, 1.f);
+  pld.color = lightParams.emission;
 }
 
-// ====================== anyhit =========================
-
-RT_PROGRAM void basicAnyHit() {
-  pld.isShadow = true;
-  rtTerminateRay();
-}

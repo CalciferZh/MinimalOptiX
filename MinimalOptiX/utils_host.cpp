@@ -103,7 +103,7 @@ void initDisneyParams(DisneyParams& disneyParams) {
   disneyParams.sheenTint = 0.5f;
   disneyParams.clearcoat = 0.0f;
   disneyParams.clearcoatGloss = 1.0f;
-  disneyParams.brdf = NORMAL;
+  disneyParams.brdfType = NORMAL;
   disneyParams.albedoID = RT_TEXTURE_ID_NULL;
 }
 

@@ -101,7 +101,7 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
   case Qt::Key_Return:
     animate(100);
     render(scendId);
-    break;  
+    break;
   case Qt::Key_W:
     lookFrom += {0.0f, 0.0f, 1.0f};
     render(scendId);
@@ -360,7 +360,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
   Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
   Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
   Program disneyMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disney");
-  Program basicAnyHit = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "basicAnyHit");
+  Program disneyAnyHit = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disneyAnyHit");
 
   std::string sceneFolder = baseSceneFolder + sceneName + "/";
   Scene scene((sceneFolder + sceneName + ".scene").c_str());
@@ -462,19 +462,9 @@ void MinimalOptiX::setupScene(const char* sceneName) {
 
       // material
       Material mtl = context->createMaterial();
-      if (scene.materials[i].brdf == NORMAL) {
-        mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
-        mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
-      }
-      else {
-        mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, glassMtl);
-        GlassParams glassParams;
-        glassParams.albedo = scene.materials[i].color;
-        glassParams.refIdx = 1.45f;
-        mtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
-      }
-      mtl->setAnyHitProgram(RAY_TYPE_SHADOW, basicAnyHit);
-
+      mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
+      mtl["disneyParams"]->setUserData(sizeof(DisneyParams), &(scene.materials[i]));
+      mtl->setAnyHitProgram(RAY_TYPE_SHADOW, disneyAnyHit);
 
       GeometryInstance meshGI = context->createGeometryInstance(geo, &mtl, &mtl + 1);
       meshGroup->addChild(meshGI);

@@ -6,7 +6,7 @@ struct Payload {
   optix::float3 color;
   int depth;
   int randSeed;
-  bool isShadow;
+  optix::float3 attenuation; // only used for shadow
 };
 
 struct CamParams {
@@ -61,7 +61,7 @@ struct DisneyParams {
   float sheenTint;
   float clearcoat;
   float clearcoatGloss;
-  BrdfType brdf;
+  BrdfType brdfType;
 };
 
 enum LightShape { SPHERE, QUAD };

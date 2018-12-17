@@ -48,7 +48,7 @@ Scene::Scene(const char* fileName) {
         sscanf(line, " sheenTint %f", &material.sheenTint);
         sscanf(line, " clearcoat %f", &material.clearcoat);
         sscanf(line, " clearcoatGloss %f", &material.clearcoatGloss);
-        sscanf(line, " brdf %i", &material.brdf);
+        sscanf(line, " brdf %i", &material.brdfType);
       }
       material.albedoID = RT_TEXTURE_ID_NULL;
       materialMap[name] = material;
