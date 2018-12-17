@@ -1,4 +1,5 @@
 #include <optix_world.h>
+#include "structures.h"
 
 using namespace optix;
 
@@ -160,6 +161,22 @@ __device__ __inline__ float3 logf(float3 v) {
   return make_float3(logf(v.x), logf(v.y), logf(v.z));
 }
 
-float3 mon2lin(float3 v) {
+__device__ __inline__ float3 mon2lin(float3 v) {
   return make_float3(pow(v.x, 2.2f), pow(v.y, 2.2f), pow(v.z, 2.2f));
+}
+
+__device__ __inline__ float disneyPdf(DisneyParams& disneyParams, float NdotH, float LdotH, float NdotL) {
+  float diffuseRatio = 0.5f * (1.0f - disneyParams.metallic);
+  float specularAlpha = max(0.001f, disneyParams.roughness);
+  float clearcoatAlpha = lerp(0.1f, 0.001f, disneyParams.clearcoatGloss);
+  float specularRatio = 1.f - diffuseRatio;
+  float cosTheta = abs(NdotH);
+  float pdfGTR1 = GTR1(cosTheta, clearcoatAlpha) * cosTheta;
+  float pdfGTR2 = GTR2(cosTheta, specularAlpha) * cosTheta;
+  float ratio = 1.0f / (1.0f + disneyParams.clearcoat);
+  float pdfH = lerp(pdfGTR1, pdfGTR2, ratio);
+  float pdfL =  pdfH / (4.0 * abs(LdotH));
+  float pdfDiff = abs(NdotL) / M_PIf;
+  float pdf = diffuseRatio * pdfDiff + specularRatio * pdfL;
+  return pdf;
 }

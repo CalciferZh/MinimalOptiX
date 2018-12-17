@@ -132,24 +132,18 @@ RT_PROGRAM void disney() {
   // TODO: sample from light directly before bsdf
   // closest hit should be different for opaque and transparent
 
-  float3 baseColor;
-  if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
-    baseColor = disneyParams.color;
-  } else {
-    baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
-  }
   // sample
   float3 N = faceforward(shadingNormal, -ray.direction, geoNormal);
   float3 V = -ray.direction;
   float3 L;
-  float diffuseRatio = 0.5f * (1.0f - disneyParams.metallic);
   float3 H;
+  float diffuseRatio = 0.5f * (1.0f - disneyParams.metallic);
   Onb onb(N);
   if (rand(pld.randSeed) < diffuseRatio) { // diffuse
     cosine_sample_hemisphere(rand(pld.randSeed), rand(pld.randSeed), L);
     onb.inverse_transform(L);
     H = normalize(L + V);
-  } else { // spect
+  } else { // specular
     float a = max(0.001f, disneyParams.roughness);
     float phi = rand(pld.randSeed) * 2.0f * M_PIf;
     float random = rand(pld.randSeed);
@@ -173,35 +167,36 @@ RT_PROGRAM void disney() {
   float NdotV = dot(N, V);
   float NdotH = dot(N, H);
   float LdotH = dot(L, H);
+  if (NdotL <= 0.0f || NdotV <= 0.0f) {
+    pld.color = make_float3(0.f);
+    return;
+  }
 
-  // probability for this light
-  float specularAlpha = max(0.001f, disneyParams.roughness);
-  float clearcoatAlpha = lerp(0.1f, 0.001f, disneyParams.clearcoatGloss);
-  float specularRatio = 1.f - diffuseRatio;
-  float cosTheta = abs(dot(H, N));
-  float pdfGTR2 = GTR2(cosTheta, specularAlpha) * cosTheta;
-  float pdfGTR1 = GTR1(cosTheta, clearcoatAlpha) * cosTheta;
-  // calculate diffuse and specular pdfs and mix ratio
-  float ratio = 1.0f / (1.0f + disneyParams.clearcoat);
-  float pdfH = lerp(pdfGTR1, pdfGTR2, ratio);
-  float pdfL =  pdfH / (4.0 * abs(LdotH));
-  float pdfDiff = abs(NdotL) / M_PIf;
-  float pdf = diffuseRatio * pdfDiff + specularRatio * pdfL;
+  float pdf = disneyPdf(disneyParams, NdotH, LdotH, NdotL);
 
   if (pdf < 0) {
     pld.color = make_float3(0.f);
     return;
   }
 
-  // evaluate color
-  if (NdotL <= 0.0f || NdotV <= 0.0f) {
-    pld.color = make_float3(0.f);
-    return;
+  float3 baseColor;
+  if (disneyParams.albedoID == RT_TEXTURE_ID_NULL) {
+    baseColor = disneyParams.color;
+  } else {
+    baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
   }
   float3 Cdlin = mon2lin(baseColor);
   float Cdlum = dot(Cdlin, make_float3(0.3, 0.6, 0.1));
   float3 Ctint = Cdlum > 0.f ? Cdlin / Cdlum : make_float3(1.f);
-  float3 Cspec0 = lerp(disneyParams.specular * 0.08f * lerp(make_float3(1.f), Ctint, disneyParams.specularTint), Cdlin, disneyParams.metallic);
+  float3 Cspec0 = lerp(
+    disneyParams.specular * 0.08f * lerp(
+                                      make_float3(1.f),
+                                      Ctint,
+                                      disneyParams.specularTint
+                                    ),
+    Cdlin,
+    disneyParams.metallic
+  );
   float3 Csheen = lerp(make_float3(1.f), Ctint, disneyParams.sheenTint);
 
   float FL = schlickFresnel(NdotL);
