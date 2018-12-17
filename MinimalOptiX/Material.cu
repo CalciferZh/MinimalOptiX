@@ -133,41 +133,21 @@ RT_PROGRAM void disney() {
   // TODO: sample from light directly before bsdf
   // closest hit should be different for opaque and transparent
 
-  // sample
-  float3 N = faceforward(shadingNormal, -ray.direction, geoNormal);
-  float3 V = -ray.direction;
-  float3 L;
-  float3 H;
-  float diffuseRatio = 0.5f * (1.0f - disneyParams.metallic);
-  Onb onb(N);
-  if (rand(pld.randSeed) < diffuseRatio) { // diffuse
-    cosine_sample_hemisphere(rand(pld.randSeed), rand(pld.randSeed), L);
-    onb.inverse_transform(L);
-    H = normalize(L + V);
-  } else { // specular
-    float a = max(0.001f, disneyParams.roughness);
-    float phi = rand(pld.randSeed) * 2.0f * M_PIf;
-    float random = rand(pld.randSeed);
-    float cosTheta = sqrtf((1.f - random) / (1.0f + (a * a - 1.f) * random));
-    float sinTheta = sqrtf(1.0f - (cosTheta * cosTheta));
-    float sinPhi = sinf(phi);
-    float cosPhi = cosf(phi);
-    H = make_float3(sinTheta*cosPhi, sinTheta*sinPhi, cosTheta);
-    onb.inverse_transform(H);
-    L = normalize(2.0f * dot(V, H) * H - V);
+  float3 N, L, V, H;
+  N = faceforward(shadingNormal, -ray.direction, geoNormal);
+  V = -ray.direction;
+  disneySample(pld.randSeed, disneyParams, N, L, V, H);
+  if (dot(N, L) <= 0.0f || dot(N, V) <= 0.0f) {
+    pld.color = make_float3(0.f);
+    return;
   }
+
   Ray newRay(frontHitPoint, L, rayTypeRadiance, rayEpsilonT);
   Payload newPld;
   newPld.depth = pld.depth + 1;
   newPld.color = make_float3(1.f);
   newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
   rtTrace(topGroup, newRay, newPld);
-  float3 lightColor = newPld.color;
-
-  if (dot(N, L) <= 0.0f || dot(N, V) <= 0.0f) {
-    pld.color = make_float3(0.f);
-    return;
-  }
 
   float pdf = disneyPdf(disneyParams, N, L, V, H);
 
@@ -182,9 +162,9 @@ RT_PROGRAM void disney() {
   } else {
     baseColor = make_float3(optix::rtTex2D<float4>(disneyParams.albedoID, texcoord.x, texcoord.y));
   }
-  float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H, onb);
+  float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
 
-  pld.color = brdf * lightColor / pdf;
+  pld.color = brdf * newPld.color / pdf;
 }
 
 // ====================== light ==========================

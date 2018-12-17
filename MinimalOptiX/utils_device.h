@@ -165,6 +165,29 @@ __device__ __inline__ float3 mon2lin(float3 v) {
   return make_float3(pow(v.x, 2.2f), pow(v.y, 2.2f), pow(v.z, 2.2f));
 }
 
+__device__ __inline__ void disneySample(int& randSeed, DisneyParams& disneyParams, float3& N, float3& L, float3& V, float3& H) {
+  float diffuseRatio = 0.5f * (1.0f - disneyParams.metallic);
+  Onb onb(N);
+  if (rand(randSeed) < diffuseRatio) { // diffuse
+    cosine_sample_hemisphere(rand(randSeed), rand(randSeed), L);
+    onb.inverse_transform(L);
+    L = normalize(L);
+    H = normalize(L + V);
+  } else { // specular
+    float a = max(0.001f, disneyParams.roughness);
+    float phi = rand(randSeed) * 2.0f * M_PIf;
+    float random = rand(randSeed);
+    float cosTheta = sqrtf((1.f - random) / (1.0f + (a * a - 1.f) * random));
+    float sinTheta = sqrtf(1.0f - (cosTheta * cosTheta));
+    float sinPhi = sinf(phi);
+    float cosPhi = cosf(phi);
+    H = make_float3(sinTheta*cosPhi, sinTheta*sinPhi, cosTheta);
+    onb.inverse_transform(H);
+    L = normalize(2.0f * dot(V, H) * H - V);
+    H = normalize(H);
+  }
+}
+
 __device__ __inline__ float disneyPdf(DisneyParams& disneyParams, float3& N, float3& L, float3& V, float3& H) {
   float diffuseRatio = 0.5f * (1.0f - disneyParams.metallic);
   float specularAlpha = max(0.001f, disneyParams.roughness);
@@ -181,7 +204,8 @@ __device__ __inline__ float disneyPdf(DisneyParams& disneyParams, float3& N, flo
   return pdf;
 }
 
-__device__ __inline__ float3 disneyEval(DisneyParams& disneyParams, float3& baseColor, float3& N, float3& L, float3& V, float3& H, Onb& onb) {
+__device__ __inline__ float3 disneyEval(DisneyParams& disneyParams, float3& baseColor, float3& N, float3& L, float3& V, float3& H) {
+  Onb onb(N);
   float NdotL = dot(N, L);
   float NdotV = dot(N, V);
   float NdotH = dot(N, H);
