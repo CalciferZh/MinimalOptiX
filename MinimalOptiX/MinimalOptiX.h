@@ -47,10 +47,10 @@ public:
   uint fixedHeights[4] = { 512u, 1000u, 1000u, 512u };
   uint fixedWidth;
   uint fixedHeight;
-  uint nSuperSampling = 1024u;
-  uint rayMaxDepth = 64;
+  uint nSuperSampling = 128u;
+  uint rayMaxDepth = 256;
   uint defaultNScatter = 32;
-  float rayMinIntensity = 0.01f;
+  float rayMinIntensity = 0.001f;
   float rayEpsilonT = 0.001f;
   optix::Aabb aabb;
   std::map<std::string, std::string> ptxStrs;

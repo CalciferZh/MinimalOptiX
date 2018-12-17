@@ -65,9 +65,9 @@ void MinimalOptiX::update(UpdateSource source) {
     for (uint i = 0; i < fixedHeight; ++i) {
       for (uint j = 0; j < fixedWidth; ++j) {
         float* src = bufferData + 3 * (i * fixedWidth + j);
-        color.setRedF(src[0] / (float)nSuperSampling);
-        color.setGreenF(src[1] / (float)nSuperSampling);
-        color.setBlueF(src[2] / (float)nSuperSampling);
+        color.setRedF(clamp(src[0] / (float)nSuperSampling, 0.f, 1.f));
+        color.setGreenF(clamp(src[1] / (float)nSuperSampling, 0.f, 1.f));
+        color.setBlueF(clamp(src[2] / (float)nSuperSampling, 0.f, 1.f));
         canvas.setPixelColor(j, fixedHeight - i - 1, color);
         src[0] = 0.0f;
         src[1] = 0.0f;

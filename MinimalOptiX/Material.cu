@@ -143,24 +143,25 @@ RT_PROGRAM void disney() {
   float3 V = -ray.direction;
   float3 L;
   float diffuseRatio = 0.5f * (1.0f - disneyParams.metallic);
-  float r1 = rand(pld.randSeed);
-  float r2 = rand(pld.randSeed);
+  float3 H;
   Onb onb(N);
   if (rand(pld.randSeed) < diffuseRatio) { // diffuse
-    cosine_sample_hemisphere(r1, r2, L);
+    cosine_sample_hemisphere(rand(pld.randSeed), rand(pld.randSeed), L);
     onb.inverse_transform(L);
+    H = normalize(L + V);
   } else { // spect
     float a = max(0.001f, disneyParams.roughness);
-    float phi = r1 * 2.0f * M_PIf;
-    float cosTheta = sqrtf((1.f - r2) / (1.0f + (a * a - 1.f) * r2));
+    float phi = rand(pld.randSeed) * 2.0f * M_PIf;
+    float random = rand(pld.randSeed);
+    float cosTheta = sqrtf((1.f - random) / (1.0f + (a * a - 1.f) * random));
     float sinTheta = sqrtf(1.0f - (cosTheta * cosTheta));
     float sinPhi = sinf(phi);
     float cosPhi = cosf(phi);
-    float3 H = make_float3(sinTheta*cosPhi, sinTheta*sinPhi, cosTheta);
+    H = make_float3(sinTheta*cosPhi, sinTheta*sinPhi, cosTheta);
     onb.inverse_transform(H);
-    L = 2.0f * dot(V, H) * H - V;
+    L = normalize(2.0f * dot(V, H) * H - V);
   }
-  Ray newRay(frontHitPoint, normalize(L), rayTypeRadiance, rayEpsilonT);
+  Ray newRay(frontHitPoint, L, rayTypeRadiance, rayEpsilonT);
   Payload newPld;
   newPld.depth = pld.depth + 1;
   newPld.color = make_float3(1.f);
@@ -168,19 +169,23 @@ RT_PROGRAM void disney() {
   rtTrace(topGroup, newRay, newPld);
   float3 lightColor = newPld.color;
 
+  float NdotL = dot(N, L);
+  float NdotV = dot(N, V);
+  float NdotH = dot(N, H);
+  float LdotH = dot(L, H);
+
   // probability for this light
   float specularAlpha = max(0.001f, disneyParams.roughness);
   float clearcoatAlpha = lerp(0.1f, 0.001f, disneyParams.clearcoatGloss);
   float specularRatio = 1.f - diffuseRatio;
-  float3 H = normalize(L + V);
   float cosTheta = abs(dot(H, N));
   float pdfGTR2 = GTR2(cosTheta, specularAlpha) * cosTheta;
   float pdfGTR1 = GTR1(cosTheta, clearcoatAlpha) * cosTheta;
   // calculate diffuse and specular pdfs and mix ratio
   float ratio = 1.0f / (1.0f + disneyParams.clearcoat);
   float pdfH = lerp(pdfGTR1, pdfGTR2, ratio);
-  float pdfL =  pdfH / (4.0 * abs(dot(L, H)));
-  float pdfDiff = abs(dot(L, N))* (1.0f / M_PIf);
+  float pdfL =  pdfH / (4.0 * abs(LdotH));
+  float pdfDiff = abs(NdotL) / M_PIf;
   float pdf = diffuseRatio * pdfDiff + specularRatio * pdfL;
 
   if (pdf < 0) {
@@ -189,14 +194,10 @@ RT_PROGRAM void disney() {
   }
 
   // evaluate color
-  float NdotL = dot(N, L);
-  float NdotV = dot(N, V);
   if (NdotL <= 0.0f || NdotV <= 0.0f) {
     pld.color = make_float3(0.f);
     return;
   }
-  float NdotH = dot(N, H);
-  float LdotH = dot(L, H);
   float3 Cdlin = mon2lin(baseColor);
   float Cdlum = dot(Cdlin, make_float3(0.3, 0.6, 0.1));
   float3 Ctint = Cdlum > 0.f ? Cdlin / Cdlum : make_float3(1.f);
@@ -238,7 +239,7 @@ RT_PROGRAM void disney() {
 rtDeclareVariable(LightParams, lightParams, , );
 
 RT_PROGRAM void light() {
-  pld.color = lightParams.emission * clamp(dot(ray.direction, shadingNormal), 0.f, 1.f);
+  pld.color = lightParams.emission;// * clamp(dot(ray.direction, shadingNormal), 0.f, 1.f);
 }
 
 // ====================== anyhit =========================
