@@ -254,6 +254,6 @@ RT_PROGRAM void disneyAnyHit() {
 rtDeclareVariable(LightParams, lightParams, , );
 
 RT_PROGRAM void light() {
-  pld.color = lightParams.emission;
+  pld.color = make_float3(1.f);
 }
 

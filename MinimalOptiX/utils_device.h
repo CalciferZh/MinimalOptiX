@@ -167,8 +167,7 @@ __device__ __inline__ float3 mon2lin(float3 v) {
   return make_float3(pow(v.x, 2.2f), pow(v.y, 2.2f), pow(v.z, 2.2f));
 }
 
-__device__ __inline__ float powerHeuristic(float a, float b)
-{
+__device__ __inline__ float powerHeuristic(float a, float b) {
 	float t = a * a;
 	return t / (b * b + t);
 }
