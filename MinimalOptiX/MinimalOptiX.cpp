@@ -443,11 +443,11 @@ void MinimalOptiX::setupScene(const char* sceneName) {
           for (int i = 0; i < img.width(); ++i) {
             for (int j = 0; j < img.height(); ++j) {
               float* dst = bufferData + 4 * (j * img.width() + i);
-              auto color = img.pixelColor(i, j);
+              auto color = img.pixelColor(i, img.height() - j - 1);
               dst[0] = color.redF();
               dst[1] = color.greenF();
               dst[2] = color.blueF();
-              dst[3] = color.alphaF();
+              dst[3] = 1.f;
             }
           }
           buffer->unmap();
