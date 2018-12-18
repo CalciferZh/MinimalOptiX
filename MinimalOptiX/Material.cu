@@ -208,7 +208,7 @@ RT_PROGRAM void disney() {
       // pdf from this object
       float objPdf = disneyPdf(disneyParams, N, L, V, H);
       float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
-      directLightColor = brdf * light.emission * (float)lights.size() / max(0.001f, lightPdf * objPdf);
+      directLightColor = powerHeuristic(lightPdf, objPdf) * brdf * light.emission * (float)lights.size() / max(0.001f, lightPdf);
     }
   }
 

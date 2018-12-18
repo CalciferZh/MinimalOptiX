@@ -43,11 +43,11 @@ public:
   
   // attributes
   SceneId scendId = SCENE_BEDROOM;
-  uint fixedWidths[4] = { 1024u, 800u, 800u, 3840u };
-  uint fixedHeights[4] = { 512u, 1000u, 1000u, 2160u };
+  uint fixedWidths[4] = { 1024u, 800u, 800u, 960u };
+  uint fixedHeights[4] = { 512u, 1000u, 1000u, 540u };
   uint fixedWidth;
   uint fixedHeight;
-  uint nSuperSampling = 2048u;
+  uint nSuperSampling = 512u;
   uint rayMaxDepth = 256;
   uint defaultNScatter = 32;
   float rayMinIntensity = 0.001f;
