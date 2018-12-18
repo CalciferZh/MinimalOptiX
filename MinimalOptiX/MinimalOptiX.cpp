@@ -27,12 +27,17 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   setupContext();
   setupScene(scendId);
   context->validate();
+  uint saveEvery = nSuperSampling / 10;
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
     context->launch(0, fixedWidth, fixedHeight);
+    if (i % saveEvery == 0) {
+      updateContent(ACCU_BUFFER, i + 1, false);
+      saveCurrentFrame(false);
+    }
   }
-  update(ACCU_BUFFER);
-  //saveCurrentFrame();
+  updateContent(ACCU_BUFFER, nSuperSampling, false);
+  saveCurrentFrame(false);
   //record(50, "sample_1.mpg");
 }
 
@@ -45,7 +50,7 @@ void MinimalOptiX::compilePtx() {
   }
 }
 
-void MinimalOptiX::update(UpdateSource source) {
+void MinimalOptiX::updateContent(UpdateSource source, float nAccumulation, bool clearBuffer) {
   if (source == OUTPUT_BUFFER) {
     uchar* bufferData = (uchar*)context["outputBuffer"]->getBuffer()->map();
     QColor color;
@@ -65,13 +70,15 @@ void MinimalOptiX::update(UpdateSource source) {
     for (uint i = 0; i < fixedHeight; ++i) {
       for (uint j = 0; j < fixedWidth; ++j) {
         float* src = bufferData + 3 * (i * fixedWidth + j);
-        color.setRedF(clamp(src[0] / (float)nSuperSampling, 0.f, 1.f));
-        color.setGreenF(clamp(src[1] / (float)nSuperSampling, 0.f, 1.f));
-        color.setBlueF(clamp(src[2] / (float)nSuperSampling, 0.f, 1.f));
+        color.setRedF(clamp(src[0] / nAccumulation, 0.f, 1.f));
+        color.setGreenF(clamp(src[1] / nAccumulation, 0.f, 1.f));
+        color.setBlueF(clamp(src[2] / nAccumulation, 0.f, 1.f));
         canvas.setPixelColor(j, fixedHeight - i - 1, color);
-        src[0] = 0.0f;
-        src[1] = 0.0f;
-        src[2] = 0.0f;
+        if (clearBuffer) {
+          src[0] = 0.0f;
+          src[1] = 0.0f;
+          src[2] = 0.0f;
+        }
       }
     }
     context["accuBuffer"]->getBuffer()->unmap();
@@ -83,20 +90,22 @@ void MinimalOptiX::update(UpdateSource source) {
   ui.view->update();
 }
 
-void MinimalOptiX::saveCurrentFrame() {
+void MinimalOptiX::saveCurrentFrame(bool popUpDialog) {
   canvas.save(QString::number(QDateTime::currentMSecsSinceEpoch()) + QString(".png"));
-  QMessageBox::information(
-    this,
-    "Save",
-    "Image saved!",
-    QMessageBox::Ok
-  );
+  if (popUpDialog) {
+    QMessageBox::information(
+      this,
+      "Save",
+      "Image saved!",
+      QMessageBox::Ok
+    );
+  }
 }
 
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
   switch (e->key()) {
   case Qt::Key_Space:
-    saveCurrentFrame();
+    saveCurrentFrame(true);
     break;
   case Qt::Key_Return:
     animate(100);
@@ -558,7 +567,7 @@ void MinimalOptiX::render(SceneId sceneId) {
     context["randSeed"]->setInt(randSeed());
     context->launch(0, fixedWidth, fixedHeight);
   }
-  update(ACCU_BUFFER);
+  updateContent(ACCU_BUFFER, nSuperSampling, true);
 }
 
 void MinimalOptiX::record(int frames, const char* filename) {

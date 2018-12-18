@@ -147,9 +147,9 @@ RT_PROGRAM void disney() {
     float cosThetaI = -dot(ray.direction, normal);
     float refIdx;
     if (cosThetaI > 0.f) {
-      refIdx = 1.4f;
+      refIdx = 1.45f;
     } else {
-      refIdx = 1.f / 1.4f;
+      refIdx = 1.f / 1.45f;
       cosThetaI = -cosThetaI;
       normal = -normal;
     }

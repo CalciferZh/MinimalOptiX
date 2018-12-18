@@ -30,11 +30,11 @@ public:
 
 	// Utilities
   void compilePtx();
+  void setupContext();
   void setupScene(SceneId sceneId);
   void setupScene(const char* sceneName);
-  void setupContext();
-	void update(UpdateSource source);
-  void saveCurrentFrame();
+	void updateContent(UpdateSource source, float nAccumulation, bool clearBuffer);
+  void saveCurrentFrame(bool popUpDialog);
 
 	// components
 	QGraphicsScene qgscene;
