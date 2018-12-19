@@ -27,13 +27,14 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   setupContext();
   setupScene(scendId);
   context->validate();
-  uint saveEvery = nSuperSampling / 10;
+  uint checkpoint = 1;
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
     context->launch(0, fixedWidth, fixedHeight);
-    if (i % saveEvery == 0) {
+    if ((i + 1) % checkpoint == 0) {
       updateContent(ACCU_BUFFER, i + 1, false);
       saveCurrentFrame(false);
+      checkpoint *= 2;
     }
   }
   updateContent(ACCU_BUFFER, nSuperSampling, false);
