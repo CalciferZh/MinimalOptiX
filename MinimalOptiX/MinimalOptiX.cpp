@@ -31,14 +31,14 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
     context->launch(0, fixedWidth, fixedHeight);
-    if ((i + 1) % checkpoint == 0) {
-      updateContent(ACCU_BUFFER, i + 1, false);
-      saveCurrentFrame(false);
-      checkpoint *= 2;
-    }
+    //if ((i + 1) % checkpoint == 0) {
+    //  updateContent(ACCU_BUFFER, i + 1, false);
+    //  saveCurrentFrame(false);
+    //  checkpoint *= 2;
+    //}
   }
   updateContent(ACCU_BUFFER, nSuperSampling, false);
-  saveCurrentFrame(false);
+  //saveCurrentFrame(false);
   //record(50, "sample_1.mpg");
 }
 

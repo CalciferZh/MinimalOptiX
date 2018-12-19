@@ -163,11 +163,21 @@ __device__ __inline__ float3 logf(float3 v) {
   return make_float3(logf(v.x), logf(v.y), logf(v.z));
 }
 
-__device__ __inline__ float3 mon2lin(float3 v) {
+__device__ __inline__ float3 srgb2lin(float3 v) {
   return make_float3(pow(v.x, 2.2f), pow(v.y, 2.2f), pow(v.z, 2.2f));
+}
+
+__device__ __inline__ float3 lin2srgb(float3 v) {
+  float kInvGamma = 1.f / 2.2f;
+	return make_float3(powf(v.x, kInvGamma), powf(v.y, kInvGamma), powf(v.z, kInvGamma));
 }
 
 __device__ __inline__ float powerHeuristic(float a, float b) {
 	float t = a * a;
 	return t / (b * b + t);
+}
+
+__device__ __inline__ float3 toneMap(const float3& c, float limit) {
+	float luminance = 0.3f * c.x + 0.6f * c.y + 0.1f * c.z;
+	return c / (1.f + luminance / limit);
 }
