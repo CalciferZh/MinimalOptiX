@@ -180,34 +180,35 @@ RT_PROGRAM void disney() {
 
   // direct light sample
   float3 directLightColor = make_float3(0.f);
-  int lightIdx = int(rand(pld.randSeed) * (float)lights.size());
-  LightParams light = lights[lightIdx];
-  float3 pointOnLight;
-  float3 normalOnLight;
-  if (light.shape == SPHERE) {
-    pointOnLight = light.position + randInUnitSphere(pld.randSeed) * light.radius;
-    normalOnLight = normalize(pointOnLight - light.position);
-  } else {
-    pointOnLight = light.position + light.u * rand(pld.randSeed) + light.v * rand(pld.randSeed);
-    normalOnLight = normalize(light.normal);
-  }
-  L = pointOnLight - frontHitPoint;
-  float lightDst = length(L);
-  L = normalize(L);
-  if (dot(L, N) > 0.f && dot(L, normalOnLight) < 0.f) {
-    Ray newRay(frontHitPoint, L, rayTypeShadow, rayEpsilonT, lightDst - rayEpsilonT);
-    Payload newPld;
-    newPld.depth = pld.depth + 1;
-    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-    newPld.attenuation = make_float3(1.f);
-    rtTrace(topGroup, newRay, newPld);
-    if (length(newPld.attenuation)) {
-      H = normalize(L + V);
-      float lightPdf = lightDst * lightDst / light.area / dot(normalOnLight, -L);
-      float objPdf = disneyPdf(disneyParams, N, L, V, H);
-      if (lightPdf > 0 && objPdf > 0) {
-        float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
-        directLightColor = powerHeuristic(lightPdf, objPdf) * brdf * light.emission * (float)lights.size() / max(0.001f, lightPdf);
+  for (int i = 0; i < lights.size(); ++i) {
+    LightParams light = lights[i];
+    float3 pointOnLight;
+    float3 normalOnLight;
+    if (light.shape == SPHERE) {
+      pointOnLight = light.position + randInUnitSphere(pld.randSeed) * light.radius;
+      normalOnLight = normalize(pointOnLight - light.position);
+    } else {
+      pointOnLight = light.position + light.u * rand(pld.randSeed) + light.v * rand(pld.randSeed);
+      normalOnLight = normalize(light.normal);
+    }
+    L = pointOnLight - frontHitPoint;
+    float lightDst = length(L);
+    L = normalize(L);
+    if (dot(L, N) > 0.f && dot(L, normalOnLight) < 0.f) {
+      Ray newRay(frontHitPoint, L, rayTypeShadow, rayEpsilonT, lightDst - rayEpsilonT);
+      Payload newPld;
+      newPld.depth = pld.depth + 1;
+      newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
+      newPld.attenuation = make_float3(1.f);
+      rtTrace(topGroup, newRay, newPld);
+      if (length(newPld.attenuation)) {
+        H = normalize(L + V);
+        float lightPdf = lightDst * lightDst / light.area / dot(normalOnLight, -L);
+        float objPdf = disneyPdf(disneyParams, N, L, V, H);
+        if (lightPdf > 0 && objPdf > 0) {
+          float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
+          directLightColor += powerHeuristic(lightPdf, objPdf) * brdf * light.emission / max(0.001f, lightPdf);
+        }
       }
     }
   }
