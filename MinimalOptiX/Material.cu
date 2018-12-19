@@ -203,47 +203,37 @@ RT_PROGRAM void disney() {
     rtTrace(topGroup, newRay, newPld);
     if (length(newPld.attenuation)) {
       H = normalize(L + V);
-      // pdf to hit that light
       float lightPdf = lightDst * lightDst / light.area / dot(normalOnLight, -L);
-      // pdf from this object
       float objPdf = disneyPdf(disneyParams, N, L, V, H);
-      float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
-      directLightColor = powerHeuristic(lightPdf, objPdf) * brdf * light.emission * (float)lights.size() / max(0.001f, lightPdf);
+      if (lightPdf > 0 && objPdf > 0) {
+        float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
+        directLightColor = powerHeuristic(lightPdf, objPdf) * brdf * light.emission * (float)lights.size() / max(0.001f, lightPdf);
+      }
     }
   }
 
-  // random sample
+  float3 indirectColor = make_float3(0.f);
   disneySample(pld.randSeed, disneyParams, N, L, V, H);
-  if (dot(N, L) <= 0.0f || dot(N, V) <= 0.0f) {
-    pld.color = make_float3(0.f);
-    return;
+  if (dot(N, L) > 0.0f && dot(N, V) > 0.0f) {
+    Ray newRay(frontHitPoint, L, rayTypeRadiance, rayEpsilonT);
+    Payload newPld;
+    newPld.depth = pld.depth + 1;
+    newPld.color = make_float3(1.f);
+    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
+    rtTrace(topGroup, newRay, newPld);
+
+    float pdf = disneyPdf(disneyParams, N, L, V, H);
+    if (pdf > 0) {
+      float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
+      indirectColor = brdf * newPld.color / pdf;
+    }
   }
 
-  Ray newRay(frontHitPoint, L, rayTypeRadiance, rayEpsilonT);
-  Payload newPld;
-  newPld.depth = pld.depth + 1;
-  newPld.color = make_float3(1.f);
-  newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-  rtTrace(topGroup, newRay, newPld);
-
-  float pdf = disneyPdf(disneyParams, N, L, V, H);
-
-  if (pdf < 0) {
-    pld.color = make_float3(0.f);
-    return;
-  }
-
-  float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
-  float3 indirectColor = brdf * newPld.color / pdf;
-
-  // pld.color = directLightColor;
   pld.color = indirectColor + directLightColor;
 }
 
 RT_PROGRAM void disneyAnyHit() {
-  if (disneyParams.brdfType == GLASS) {
-    pld.attenuation *= disneyParams.color;
-  } else {
+  if (disneyParams.brdfType != GLASS) {
     pld.attenuation = make_float3(0.f);
     rtTerminateRay();
   }

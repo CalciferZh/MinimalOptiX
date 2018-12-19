@@ -70,6 +70,7 @@ struct LightParams {
   optix::float3 position;
   optix::float3 normal;
   optix::float3 emission;
+  // u and v are not normalized
   optix::float3 u;
   optix::float3 v;
   float area;
