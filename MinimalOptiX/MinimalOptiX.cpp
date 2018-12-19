@@ -31,14 +31,18 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   for (uint i = 0; i < nSuperSampling; ++i) {
     context["randSeed"]->setInt(randSeed());
     context->launch(0, fixedWidth, fixedHeight);
-    //if ((i + 1) % checkpoint == 0) {
-    //  updateContent(ACCU_BUFFER, i + 1, false);
-    //  saveCurrentFrame(false);
-    //  checkpoint *= 2;
-    //}
+    if (isHDRendering) {
+      if ((i + 1) % checkpoint == 0) {
+        updateContent(ACCU_BUFFER, i + 1, false);
+        saveCurrentFrame(false);
+        checkpoint *= 2;
+      }
+    }
   }
   updateContent(ACCU_BUFFER, nSuperSampling, false);
-  //saveCurrentFrame(false);
+  if (isHDRendering) {
+    saveCurrentFrame(false);
+  }
   //record(50, "sample_1.mpg");
 }
 
@@ -352,6 +356,17 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     CamParams camParams;
     float3 lookFrom = aabb.center() + make_float3(0.3f, 0.1f, 0.45f) * aabb.extent();
     float3 lookAt = aabb.center() + make_float3(0.05f, -0.1f, 0.f) * aabb.extent();
+    float3 up = { 0.f, 1.f, 0.f };
+    setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
+    Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+    context->setRayGenerationProgram(0, rayGenProgram);
+  }
+  else if (sceneId == SCENE_DININGROOM) {
+    setupScene("diningroom");
+    CamParams camParams;
+    float3 lookFrom = aabb.center() + make_float3(-0.7f, -0.f, 0.f) * aabb.extent();
+    float3 lookAt = aabb.center() + make_float3(-0.6f, -0.f, 0.f) * aabb.extent();
     float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
