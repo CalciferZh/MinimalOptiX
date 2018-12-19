@@ -67,11 +67,9 @@ void cuFileToPtxStr(std::string& fileName, std::string& ptxStr) {
 void setQuadParams(optix::float3& anchor, optix::float3& v1, optix::float3& v2, QuadParams& quadParams) {
   optix::float3 normal = normalize(optix::cross(v2, v1));
   float d = dot(normal, anchor);
-  v1 /= dot(v1, v1);
-  v2 /= dot(v2, v2);
   optix::float4 plane = make_float4(normal, d);
-  quadParams.v1 = v1;
-  quadParams.v2 = v2;
+  quadParams.v1 = v1 / dot(v1, v1);
+  quadParams.v2 = v2 / dot(v2, v2);
   quadParams.plane = plane;
   quadParams.anchor = anchor;
 }
