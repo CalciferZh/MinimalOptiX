@@ -411,19 +411,19 @@ void MinimalOptiX::setupScene(const char* sceneName) {
       geo->setIntersectionProgram(meshIntersect);
       geo->setBoundingBoxProgram(meshBBox);
 
-      Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.vertices.size());
+      Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.vertices.size() / 3);
       memcpy(vertexBuffer->map(), attrib.vertices.data(), sizeof(float) * attrib.vertices.size());
       vertexBuffer->unmap();
       geo["vertexBuffer"]->set(vertexBuffer);
 
-      Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size());
+      Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size() / 3);
       if (!attrib.normals.empty()) {
         memcpy(normalBuffer->map(), attrib.normals.data(), sizeof(float) * attrib.normals.size());
         normalBuffer->unmap();
       }
       geo["normalBuffer"]->set(normalBuffer);
 
-      Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size());
+      Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, attrib.texcoords.size() / 2);
       if (!attrib.texcoords.empty()) {
         memcpy(texcoordBuffer->map(), attrib.texcoords.data(), sizeof(float) * attrib.texcoords.size());
         texcoordBuffer->unmap();
