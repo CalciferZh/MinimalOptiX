@@ -164,7 +164,7 @@ void MinimalOptiX::setupContext() {
   Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
   context->setMissProgram(0, missProgram);
   //missProgram["bgColor"]->setFloat(1.f, 1.f, 1.f);
-  missProgram["bgColor"]->setFloat(0.3f, 0.3f, 0.3f);
+  missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
 }
 
 void MinimalOptiX::setupScene(SceneId sceneId) {
@@ -400,6 +400,17 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
     float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 39.3077, (float)fixedWidth / (float)fixedHeight, camParams);
+    Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+    context->setRayGenerationProgram(0, rayGenProgram);
+  }
+  else if (sceneId == SCENE_HYPERION) {
+    setupScene("hyperion");
+    CamParams camParams;
+    float3 lookFrom = aabb.center() + make_float3(-0.08f, 2.f, 0.f) * aabb.extent();
+    float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    float3 up = { 0.f, 1.f, 0.f };
+    setCamParams(lookFrom, lookAt, up, 30, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
