@@ -404,10 +404,15 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
-  else if (sceneId == SCENE_HYPERION) {
+  else if (sceneId == SCENE_HYPERION || sceneId == SCENE_DRAGON) {
     setupScene("hyperion");
     CamParams camParams;
-    float3 lookFrom = aabb.center() + make_float3(-0.08f, 2.f, 0.f) * aabb.extent();
+    float3 lookFrom;
+    if (sceneId == SCENE_HYPERION) {
+      lookFrom = aabb.center() + make_float3(-0.08f, 2.f, 0.f) * aabb.extent();
+    } else {
+      lookFrom = aabb.center() + make_float3(0.05f, 0.3f, -0.005f) * aabb.extent();
+    }
     float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
     float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 30, (float)fixedWidth / (float)fixedHeight, camParams);
