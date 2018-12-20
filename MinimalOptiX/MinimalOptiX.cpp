@@ -365,8 +365,8 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
   else if (sceneId == SCENE_DININGROOM) {
     setupScene("diningroom");
     CamParams camParams;
-    float3 lookFrom = aabb.center() + make_float3(-0.7f, -0.f, 0.f) * aabb.extent();
-    float3 lookAt = aabb.center() + make_float3(-0.6f, -0.f, 0.f) * aabb.extent();
+    float3 lookFrom = aabb.center() + make_float3(-0.7f, 0.f, 0.f) * aabb.extent();
+    float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
     float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
@@ -430,23 +430,31 @@ void MinimalOptiX::setupScene(const char* sceneName) {
       }
       geo["texcoordBuffer"]->set(texcoordBuffer);
 
-      Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.num_face_vertices.size());
-      int* indexBufDst = (int*)indexBuffer->map();
+
+      Buffer vertIdxBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.num_face_vertices.size());
+      int* vertIdxBufDst = (int*)vertIdxBuffer->map();
+      Buffer texIdxBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.num_face_vertices.size());
+      int* texIdxBufDst = (int*)texIdxBuffer->map();
+      Buffer normIdxBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, shapes[s].mesh.num_face_vertices.size());
+      int* normIdxBufDst = (int*)normIdxBuffer->map();
       for (int f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-        if (shapes[s].mesh.num_face_vertices[f] != 3) {
-          throw std::logic_error("Face's number of vertices != 3");
-        }
         for (int fv = 0; fv < 3; ++fv) {
-          auto idx = shapes[s].mesh.indices[f * 3 + fv];
-          indexBufDst[f * 3 + fv] = idx.vertex_index;
+          auto& idx = shapes[s].mesh.indices[f * 3 + fv];
+          vertIdxBufDst[f * 3 + fv] = idx.vertex_index;
+          texIdxBufDst[f * 3 + fv] = idx.texcoord_index;
+          normIdxBufDst[f * 3 + fv] = idx.normal_index;
           tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
           tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
           tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
           aabb.include(make_float3(vx, vy, vz));
         }
       }
-      indexBuffer->unmap();
-      geo["indexBuffer"]->set(indexBuffer);
+      vertIdxBuffer->unmap();
+      texIdxBuffer->unmap();
+      normIdxBuffer->unmap();
+      geo["vertIdxBuffer"]->set(vertIdxBuffer);
+      geo["texIdxBuffer"]->set(texIdxBuffer);
+      geo["normIdxBuffer"]->set(normIdxBuffer);
 
       // texture
       if (!scene.textures[i].empty()) {

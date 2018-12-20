@@ -42,13 +42,13 @@ public:
   optix::Context context;
   
   // attributes
-  SceneId scendId = SCENE_DININGROOM;
+  SceneId scendId = SCENE_BEDROOM;
   bool isHDRendering = false;
   uint fixedWidths[5] = { 1024u, 800u, 800u, 960u, 960u };
   uint fixedHeights[5] = { 512u, 1000u, 1000u, 540u, 540u };
   uint fixedWidth;
   uint fixedHeight;
-  uint nSuperSampling = 512u;
+  uint nSuperSampling = 128u;
   uint rayMaxDepth = 256;
   uint defaultNScatter = 32;
   float rayMinIntensity = 0.001f;

@@ -91,13 +91,13 @@ RT_PROGRAM void quadIntersect(int) {
 RT_PROGRAM void quadBBox(int, float result[6]) {
   // v1 and v2 are scaled by 1./length^2.
   // Rescale back to normal for the bounds computation.
-  const float3 tv1 = quadParams.v1 / dot(quadParams.v1, quadParams.v1);
-  const float3 tv2 = quadParams.v2 / dot(quadParams.v2, quadParams.v2);
-  const float3 p00 = quadParams.anchor;
-  const float3 p01 = quadParams.anchor + tv1;
-  const float3 p10 = quadParams.anchor + tv2;
-  const float3 p11 = quadParams.anchor + tv1 + tv2;
-  const float  area = length(cross(tv1, tv2));
+  float3 tv1 = quadParams.v1 / dot(quadParams.v1, quadParams.v1);
+  float3 tv2 = quadParams.v2 / dot(quadParams.v2, quadParams.v2);
+  float3 p00 = quadParams.anchor;
+  float3 p01 = quadParams.anchor + tv1;
+  float3 p10 = quadParams.anchor + tv2;
+  float3 p11 = quadParams.anchor + tv1 + tv2;
+  float  area = length(cross(tv1, tv2));
   optix::Aabb* aabb = (optix::Aabb*)result;
   if(area > 0.0f && !isinf(area)) {
     aabb->m_min = fminf(fminf(p00, p01), fminf(p10, p11));
@@ -112,13 +112,17 @@ RT_PROGRAM void quadBBox(int, float result[6]) {
 rtBuffer<float3> vertexBuffer;
 rtBuffer<float3> normalBuffer;
 rtBuffer<float2> texcoordBuffer;
-rtBuffer<int3>   indexBuffer;
+rtBuffer<int3>   vertIdxBuffer;
+rtBuffer<int3>   texIdxBuffer;
+rtBuffer<int3>   normIdxBuffer;
 
 RT_PROGRAM void meshIntersect(int primIdx) {
-  const int3 v_idx = indexBuffer[primIdx];
-  const float3 p0 = vertexBuffer[v_idx.x];
-  const float3 p1 = vertexBuffer[v_idx.y];
-  const float3 p2 = vertexBuffer[v_idx.z];
+  int3 vertIdx = vertIdxBuffer[primIdx];
+  int3 texIdx = texIdxBuffer[primIdx];
+  int3 normIdx = normIdxBuffer[primIdx];
+  float3 p0 = vertexBuffer[vertIdx.x];
+  float3 p1 = vertexBuffer[vertIdx.y];
+  float3 p2 = vertexBuffer[vertIdx.z];
 
   float3 n;
   float t;
@@ -130,14 +134,14 @@ RT_PROGRAM void meshIntersect(int primIdx) {
       if(normalBuffer.size() == 0) {
         shadingNormal = geoNormal;
       } else {
-        shadingNormal = normalize(normalBuffer[v_idx.y] * beta + normalBuffer[v_idx.z] * gamma + normalBuffer[v_idx.x] * (1.f - beta - gamma));
+        shadingNormal = normalize(normalBuffer[normIdx.y] * beta + normalBuffer[normIdx.z] * gamma + normalBuffer[normIdx.x] * (1.f - beta - gamma));
       }
       if (texcoordBuffer.size() == 0) {
         texcoord = make_float3(0.f);
       } else {
-        float2 t0 = texcoordBuffer[v_idx.x];
-        float2 t1 = texcoordBuffer[v_idx.y];
-        float2 t2 = texcoordBuffer[v_idx.z];
+        float2 t0 = texcoordBuffer[texIdx.x];
+        float2 t1 = texcoordBuffer[texIdx.y];
+        float2 t2 = texcoordBuffer[texIdx.z];
         texcoord = make_float3(t1 * beta + t2 * gamma + t0 * (1.0f - beta - gamma));
       }
       refineHitpoint(
@@ -154,11 +158,11 @@ RT_PROGRAM void meshIntersect(int primIdx) {
 }
 
 RT_PROGRAM void meshBBox (int primIdx, float result[6]) {
-  const int3 v_idx = indexBuffer[primIdx];
-  const float3 v0 = vertexBuffer[v_idx.x];
-  const float3 v1 = vertexBuffer[v_idx.y];
-  const float3 v2 = vertexBuffer[v_idx.z];
-  const float area = length(cross(v1 - v0, v2 - v0));
+  int3 vertIdx = vertIdxBuffer[primIdx];
+  float3 v0 = vertexBuffer[vertIdx.x];
+  float3 v1 = vertexBuffer[vertIdx.y];
+  float3 v2 = vertexBuffer[vertIdx.z];
+  float area = length(cross(v1 - v0, v2 - v0));
   optix::Aabb* aabb = (optix::Aabb*)result;
   if(area > 0.0f && !isinf(area)) {
     aabb->m_min = fminf(fminf(v0, v1), v2);
