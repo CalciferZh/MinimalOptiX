@@ -51,13 +51,11 @@ __device__ __inline__ uchar4 make_color(const float3& c) {
   );
 }
 
-
 __device__ __inline__ float fresnel(float cosThetaI, float cosThetaT, float refIdx) {
   float rs = (cosThetaI - cosThetaT * refIdx) / (cosThetaI + refIdx * cosThetaT);
   float rp = (cosThetaI * refIdx - cosThetaT) / (cosThetaI * refIdx + cosThetaT);
   return 0.5f * (rs * rs + rp * rp);
 }
-
 
 // Plane intersection -- used for refining triangle hit points.  Note
 // that this skips zero denom check (for rays perpindicular to plane normal)
@@ -180,4 +178,11 @@ __device__ __inline__ float powerHeuristic(float a, float b) {
 __device__ __inline__ float3 toneMap(const float3& c, float limit) {
 	float luminance = 0.3f * c.x + 0.6f * c.y + 0.1f * c.z;
 	return c / (1.f + luminance / limit);
+}
+
+__device__ __inline__ Payload folkPayload(Payload& parent) {
+  Payload child;
+  child.depth = parent.depth + 1;
+  child.color = make_float3(1.f);
+  child.randSeed = tea<16>(parent.randSeed, child.depth);
 }

@@ -5,7 +5,7 @@
 
 using namespace optix;
 
-rtDeclareVariable(Payload, pld, rtPayload, );
+rtDeclareVariable(Payload, payload, rtPayload, );
 rtDeclareVariable(Ray, ray, rtCurrentRay, );
 
 rtDeclareVariable(rtObject, topGroup, , );
@@ -26,23 +26,20 @@ rtDeclareVariable(float3, backHitPoint, attribute backHitPoint, );
 rtDeclareVariable(LambertianParams, lambParams, , );
 
 RT_PROGRAM void lambertian() {
-  if (pld.depth > rayMaxDepth || length(pld.color) < rayMinIntensity) {
-    pld.color = absorbColor;
+  if (payload.depth > rayMaxDepth || length(payload.color) < rayMinIntensity) {
+    payload.color = absorbColor;
     return;
   }
   float3 tmpColor = { 0.f, 0.f, 0.f };
   Ray newRay(
     ray.origin + t * ray.direction,
-    normalize(geoNormal + randInUnitSphere(pld.randSeed)),
+    normalize(geoNormal + randInUnitSphere(payload.randSeed)),
     rayTypeRadiance,
     rayEpsilonT
   );
-  Payload newPld;
-  newPld.depth = pld.depth + 1;
-  newPld.color = make_float3(1.f);
-  newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-  rtTrace(topGroup, newRay, newPld);
-  pld.color = newPld.color * lambParams.albedo;
+  Payload newPayload = folkPayload(payload);
+  rtTrace(topGroup, newRay, newPayload);
+  payload.color = newPayload.color * lambParams.albedo;
 }
 
 // ====================== metal ==========================
@@ -50,22 +47,22 @@ RT_PROGRAM void lambertian() {
 rtDeclareVariable(MetalParams, metalParams, , );
 
 RT_PROGRAM void metal() {
-  if (pld.depth > rayMaxDepth || length(pld.color) < rayMinIntensity) {
-    pld.color = absorbColor;
+  if (payload.depth > rayMaxDepth || length(payload.color) < rayMinIntensity) {
+    payload.color = absorbColor;
     return;
   }
   Ray newRay(
     ray.origin + t * ray.direction,
-    normalize(reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(pld.randSeed)),
+    normalize(reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(payload.randSeed)),
     rayTypeRadiance,
     rayEpsilonT
   );
-  Payload newPld;
-  newPld.depth = pld.depth + 1;
-  newPld.color = make_float3(1.f);
-  newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-  rtTrace(topGroup, newRay, newPld);
-  pld.color = metalParams.albedo * newPld.color;
+  Payload newPayload;
+  newPayload.depth = payload.depth + 1;
+  newPayload.color = make_float3(1.f);
+  newPayload.randSeed = tea<16>(payload.randSeed, newPayload.depth);
+  rtTrace(topGroup, newRay, newPayload);
+  payload.color = metalParams.albedo * newPayload.color;
 }
 
 // ====================== glass ==========================
@@ -73,8 +70,8 @@ RT_PROGRAM void metal() {
 rtDeclareVariable(GlassParams, glassParams, , );
 
 RT_PROGRAM void glass() {
-  if (pld.depth > rayMaxDepth || length(pld.color) < rayMinIntensity) {
-    pld.color = absorbColor;
+  if (payload.depth > rayMaxDepth || length(payload.color) < rayMinIntensity) {
+    payload.color = absorbColor;
     return;
   }
 
@@ -97,19 +94,19 @@ RT_PROGRAM void glass() {
   newRay.ray_type = rayTypeRadiance;
   newRay.tmin = rayEpsilonT;
   newRay.tmax = RT_DEFAULT_MAX;
-  Payload newPld;
-  newPld.depth = pld.depth + 1;
-  newPld.color = make_float3(1.f, 1.f, 1.f);
-  newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-  if (rand(pld.randSeed) < reflectProb) {
+  Payload newPayload;
+  newPayload.depth = payload.depth + 1;
+  newPayload.color = make_float3(1.f);
+  newPayload.randSeed = tea<16>(payload.randSeed, newPayload.depth);
+  if (rand(payload.randSeed) < reflectProb) {
     newRay.origin = frontHitPoint;
     newRay.direction = reflect(ray.direction, normal);
   } else {
     newRay.origin = backHitPoint;
     newRay.direction = refracted;
   }
-  rtTrace(topGroup, newRay, newPld);
-  pld.color = newPld.color * glassParams.albedo;
+  rtTrace(topGroup, newRay, newPayload);
+  payload.color = newPayload.color * glassParams.albedo;
 }
 
 // ====================== Disney =========================
@@ -119,8 +116,8 @@ rtDeclareVariable(float3, texcoord, attribute texcoord, );
 rtBuffer<LightParams> lights;
 
 RT_PROGRAM void disney() {
-  if (pld.depth > rayMaxDepth || length(pld.color) < rayMinIntensity) {
-    pld.color = absorbColor;
+  if (payload.depth > rayMaxDepth || length(payload.color) < rayMinIntensity) {
+    payload.color = absorbColor;
     return;
   }
 
@@ -154,19 +151,19 @@ RT_PROGRAM void disney() {
     newRay.ray_type = rayTypeRadiance;
     newRay.tmin = rayEpsilonT;
     newRay.tmax = RT_DEFAULT_MAX;
-    Payload newPld;
-    newPld.depth = pld.depth + 1;
-    newPld.color = make_float3(1.f, 1.f, 1.f);
-    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-    if (rand(pld.randSeed) < reflectProb) {
+    Payload newPayload;
+    newPayload.depth = payload.depth + 1;
+    newPayload.color = make_float3(1.f);
+    newPayload.randSeed = tea<16>(payload.randSeed, newPayload.depth);
+    if (rand(payload.randSeed) < reflectProb) {
       newRay.origin = frontHitPoint;
       newRay.direction = reflect(ray.direction, normal);
     } else {
       newRay.origin = backHitPoint;
       newRay.direction = refracted;
     }
-    rtTrace(topGroup, newRay, newPld);
-    pld.color = newPld.color * baseColor;
+    rtTrace(topGroup, newRay, newPayload);
+    payload.color = newPayload.color * baseColor;
     return;
   }
 
@@ -177,10 +174,10 @@ RT_PROGRAM void disney() {
     float3 pointOnLight;
     float3 normalOnLight;
     if (light.shape == SPHERE) {
-      pointOnLight = light.position + randInUnitSphere(pld.randSeed) * light.radius;
+      pointOnLight = light.position + randInUnitSphere(payload.randSeed) * light.radius;
       normalOnLight = normalize(pointOnLight - light.position);
     } else {
-      pointOnLight = light.position + light.u * rand(pld.randSeed) + light.v * rand(pld.randSeed);
+      pointOnLight = light.position + light.u * rand(payload.randSeed) + light.v * rand(payload.randSeed);
       normalOnLight = normalize(light.normal);
     }
     L = pointOnLight - frontHitPoint;
@@ -188,48 +185,48 @@ RT_PROGRAM void disney() {
     L = normalize(L);
     if (dot(L, N) > 0.f && dot(L, normalOnLight) < 0.f) {
       Ray newRay(frontHitPoint, L, rayTypeShadow, rayEpsilonT, lightDst - rayEpsilonT);
-      Payload newPld;
-      newPld.depth = pld.depth + 1;
-      newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-      newPld.attenuation = make_float3(1.f);
-      rtTrace(topGroup, newRay, newPld);
-      if (length(newPld.attenuation)) {
+      Payload newPayload;
+      newPayload.depth = payload.depth + 1;
+      newPayload.attenuation = make_float3(1.f);
+      newPayload.randSeed = tea<16>(payload.randSeed, newPayload.depth);
+      rtTrace(topGroup, newRay, newPayload);
+      if (length(newPayload.attenuation)) {
         H = normalize(L + V);
         float lightPdf = lightDst * lightDst / light.area / dot(normalOnLight, -L);
         float objPdf = disneyPdf(disneyParams, N, L, V, H);
         if (lightPdf > 0 && objPdf > 0) {
           float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
-          directLightColor += powerHeuristic(lightPdf, objPdf) * brdf * light.emission * newPld.attenuation / max(0.001f, lightPdf);
+          directLightColor += powerHeuristic(lightPdf, objPdf) * brdf * light.emission * newPayload.attenuation / max(0.001f, lightPdf);
         }
       }
     }
   }
 
   float3 indirectColor = make_float3(0.f);
-  disneySample(pld.randSeed, disneyParams, N, L, V, H);
+  disneySample(payload.randSeed, disneyParams, N, L, V, H);
   if (dot(N, L) > 0.0f && dot(N, V) > 0.0f) {
     Ray newRay(frontHitPoint, L, rayTypeRadiance, rayEpsilonT);
-    Payload newPld;
-    newPld.depth = pld.depth + 1;
-    newPld.color = make_float3(1.f);
-    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
-    rtTrace(topGroup, newRay, newPld);
+    Payload newPayload;
+    newPayload.depth = payload.depth + 1;
+    newPayload.color = make_float3(1.f);
+    newPayload.randSeed = tea<16>(payload.randSeed, newPayload.depth);
+    rtTrace(topGroup, newRay, newPayload);
 
     float pdf = disneyPdf(disneyParams, N, L, V, H);
     if (pdf > 0) {
       float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
-      indirectColor = brdf * newPld.color / pdf;
+      indirectColor = brdf * newPayload.color / pdf;
     }
   }
 
-  pld.color = indirectColor + directLightColor + disneyParams.emission;
+  payload.color = indirectColor + directLightColor + disneyParams.emission;
 }
 
 RT_PROGRAM void disneyAnyHit() {
   if (disneyParams.brdfType == GLASS) {
-    pld.attenuation *= disneyParams.color;
+    payload.attenuation *= disneyParams.color;
   } else {
-    pld.attenuation = make_float3(0.f);
+    payload.attenuation = make_float3(0.f);
     rtTerminateRay();
   }
 }
@@ -239,6 +236,6 @@ RT_PROGRAM void disneyAnyHit() {
 rtDeclareVariable(LightParams, lightParams, , );
 
 RT_PROGRAM void light() {
-  pld.color = lightParams.emission;
+  payload.color = lightParams.emission;
 }
 
