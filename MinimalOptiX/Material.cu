@@ -207,7 +207,7 @@ RT_PROGRAM void disney() {
         float objPdf = disneyPdf(disneyParams, N, L, V, H);
         if (lightPdf > 0 && objPdf > 0) {
           float3 brdf = disneyEval(disneyParams, baseColor, N, L, V, H);
-          directLightColor += powerHeuristic(lightPdf, objPdf) * brdf * light.emission / max(0.001f, lightPdf);
+          directLightColor += powerHeuristic(lightPdf, objPdf) * brdf * light.emission * newPld.attenuation / max(0.001f, lightPdf);
         }
       }
     }
@@ -230,11 +230,13 @@ RT_PROGRAM void disney() {
     }
   }
 
-  pld.color = indirectColor + directLightColor;
+  pld.color = indirectColor + directLightColor + disneyParams.emission;
 }
 
 RT_PROGRAM void disneyAnyHit() {
-  if (disneyParams.brdfType != GLASS) {
+  if (disneyParams.brdfType == GLASS) {
+    pld.attenuation *= disneyParams.color;
+  } else {
     pld.attenuation = make_float3(0.f);
     rtTerminateRay();
   }

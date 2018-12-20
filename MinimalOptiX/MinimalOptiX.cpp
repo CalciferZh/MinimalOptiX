@@ -9,8 +9,6 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
-  fixedWidth = fixedWidths[scendId];
-  fixedHeight = fixedHeights[scendId];
 
   setFixedSize(fixedWidth, fixedHeight);
   setWindowFlags(Qt::MSWindowsFixedSizeDialogHint);
@@ -378,6 +376,17 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     CamParams camParams;
     float3 lookFrom = aabb.center() + make_float3(0.25f, 0.1f, 0.395f) * aabb.extent();
     float3 lookAt = aabb.center() + make_float3(0.25f, 0.1f, 0.f) * aabb.extent();
+    float3 up = { 0.f, 1.f, 0.f };
+    setCamParams(lookFrom, lookAt, up, 30, (float)fixedWidth / (float)fixedHeight, camParams);
+    Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+    context->setRayGenerationProgram(0, rayGenProgram);
+  }
+  else if (sceneId == SCENE_SPACESHIP) {
+    setupScene("spaceship");
+    CamParams camParams;
+    float3 lookFrom = aabb.center() + make_float3(-0.05f, 0.05f, -0.05f) * aabb.extent();
+    float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
     float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 30, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
