@@ -31,13 +31,13 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
     context->launch(0, fixedWidth, fixedHeight);
     if (isHDRendering) {
       if ((i + 1) % checkpoint == 0) {
-        updateContent(ACCU_BUFFER, i + 1, false);
+        updateContent(i + 1, false);
         saveCurrentFrame(false);
         checkpoint *= 2;
       }
     }
   }
-  updateContent(ACCU_BUFFER, nSuperSampling, false);
+  updateContent(nSuperSampling, false);
   if (isHDRendering) {
     saveCurrentFrame(false);
   }
@@ -53,39 +53,24 @@ void MinimalOptiX::compilePtx() {
   }
 }
 
-void MinimalOptiX::updateContent(UpdateSource source, float nAccumulation, bool clearBuffer) {
-  if (source == OUTPUT_BUFFER) {
-    uchar* bufferData = (uchar*)context["outputBuffer"]->getBuffer()->map();
-    QColor color;
-    for (uint i = 0; i < fixedHeight; ++i) {
-      for (uint j = 0; j < fixedWidth; ++j) {
-        uchar* src = bufferData + 4 * (i * fixedWidth + j);
-        color.setRed((int)*(src + 0));
-        color.setGreen((int)*(src + 1));
-        color.setBlue((int)*(src + 2));
-        canvas.setPixelColor(j, fixedHeight - i - 1, color);
+void MinimalOptiX::updateContent(float nAccumulation, bool clearBuffer) {
+  float* bufferData = (float*)context["accuBuffer"]->getBuffer()->map();
+  QColor color;
+  for (uint i = 0; i < fixedHeight; ++i) {
+    for (uint j = 0; j < fixedWidth; ++j) {
+      float* src = bufferData + 3 * (i * fixedWidth + j);
+      color.setRedF(clamp(src[0] / nAccumulation, 0.f, 1.f));
+      color.setGreenF(clamp(src[1] / nAccumulation, 0.f, 1.f));
+      color.setBlueF(clamp(src[2] / nAccumulation, 0.f, 1.f));
+      canvas.setPixelColor(j, fixedHeight - i - 1, color);
+      if (clearBuffer) {
+        src[0] = 0.0f;
+        src[1] = 0.0f;
+        src[2] = 0.0f;
       }
     }
-    context["outputBuffer"]->getBuffer()->unmap();
-  } else if (source == ACCU_BUFFER) {
-    float* bufferData = (float*)context["accuBuffer"]->getBuffer()->map();
-    QColor color;
-    for (uint i = 0; i < fixedHeight; ++i) {
-      for (uint j = 0; j < fixedWidth; ++j) {
-        float* src = bufferData + 3 * (i * fixedWidth + j);
-        color.setRedF(clamp(src[0] / nAccumulation, 0.f, 1.f));
-        color.setGreenF(clamp(src[1] / nAccumulation, 0.f, 1.f));
-        color.setBlueF(clamp(src[2] / nAccumulation, 0.f, 1.f));
-        canvas.setPixelColor(j, fixedHeight - i - 1, color);
-        if (clearBuffer) {
-          src[0] = 0.0f;
-          src[1] = 0.0f;
-          src[2] = 0.0f;
-        }
-      }
-    }
-    context["accuBuffer"]->getBuffer()->unmap();
   }
+  context["accuBuffer"]->getBuffer()->unmap();
 
   QPixmap tmpPixmap = QPixmap::fromImage(canvas);
   qgscene.clear();
@@ -147,9 +132,6 @@ void MinimalOptiX::setupContext() {
   context["absorbColor"]->setFloat(0.f, 0.f, 0.f);
   context["nSuperSampling"]->setUint(nSuperSampling);
 
-
-  Buffer outputBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_BYTE4, fixedWidth, fixedHeight);
-  context["outputBuffer"]->set(outputBuffer);
   Buffer accuBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT3, fixedWidth, fixedHeight);
   memset((float*)accuBuffer->map(), 0, sizeof(float) * 3 * fixedWidth * fixedHeight);
   accuBuffer->unmap();
@@ -158,7 +140,7 @@ void MinimalOptiX::setupContext() {
   // Exception
   Program exptProgram = context->createProgramFromPTXString(ptxStrs[exCuFileName], "exception");
   context->setExceptionProgram(0, exptProgram);
-  context["badColor"]->setFloat(1.f, 0.f, 0.f);
+  context["badColor"]->setFloat(0.f, 0.f, 0.f);
 
   // Miss
   Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
@@ -638,7 +620,7 @@ void MinimalOptiX::render(SceneId sceneId) {
     context["randSeed"]->setInt(randSeed());
     context->launch(0, fixedWidth, fixedHeight);
   }
-  updateContent(ACCU_BUFFER, nSuperSampling, true);
+  updateContent(nSuperSampling, true);
 }
 
 void MinimalOptiX::record(int frames, const char* filename) {

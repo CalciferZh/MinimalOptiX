@@ -16,7 +16,6 @@ rtDeclareVariable(float, rayEpsilonT, , );
 
 rtDeclareVariable(CamParams, camParams, , );
 rtBuffer<float3, 2> accuBuffer;
-rtBuffer<uchar4, 2> outputBuffer;
 
 RT_PROGRAM void pinholeCamera() {
   Payload pld;
@@ -39,5 +38,4 @@ RT_PROGRAM void pinholeCamera() {
   pld.color = clamp(pld.color, make_float3(0.f), make_float3(1.f));
 
   accuBuffer[launchIdx] += pld.color;
-  outputBuffer[launchIdx] = make_color(pld.color);
 }
