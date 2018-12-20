@@ -23,7 +23,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  renderScene(scendId, false);
+  imageDemo();
 }
 
 void MinimalOptiX::compilePtx() {
@@ -60,16 +60,50 @@ void MinimalOptiX::updateContent(float nAccumulation, bool clearBuffer) {
   ui.view->update();
 }
 
-void MinimalOptiX::saveCurrentFrame(bool popUpDialog) {
-  canvas.save(QString::number(QDateTime::currentMSecsSinceEpoch()) + QString(".png"));
+void MinimalOptiX::saveCurrentFrame(bool popUpDialog, std::string fileNamePrefix) {
+  QString fileName;
+  if (fileNamePrefix.empty()) {
+    fileName = QString::number(QDateTime::currentMSecsSinceEpoch()) + QString(".png");
+  } else {
+    fileName = QString::fromStdString(fileNamePrefix) + QString(".png");
+  }
+  canvas.save(fileName);
   if (popUpDialog) {
     QMessageBox::information(
       this,
       "Save",
-      "Image saved!",
+      "Image saved to " + fileName,
       QMessageBox::Ok
     );
   }
+}
+
+void MinimalOptiX::imageDemo() {
+  sceneId = SCENE_COFFEE;
+  renderScene(true, "coffee");
+  sceneId = SCENE_BEDROOM;
+  renderScene(true, "bedroom");
+  sceneId = SCENE_DININGROOM;
+  renderScene(true, "diningroom");
+  sceneId = SCENE_STORMTROOPER;
+  renderScene(true, "stormtroop");
+  sceneId = SCENE_SPACESHIP;
+  renderScene(true, "spaceship");
+  sceneId = SCENE_CORNELL;
+  renderScene(true, "cornell");
+  sceneId = SCENE_HYPERION;
+  renderScene(true, "hyperion");
+  sceneId = SCENE_DRAGON;
+  renderScene(true, "dragon");
+  QMessageBox::information(
+    this,
+    "Done",
+    "All images have been saved.",
+    QMessageBox::Ok
+  );
+}
+
+void MinimalOptiX::videoDemo() {
 }
 
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
@@ -79,23 +113,23 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
     break;
   case Qt::Key_Return:
     animate(100);
-    renderScene(scendId, false);
+    renderScene(sceneId);
     break;
   case Qt::Key_W:
     lookFrom += {0.0f, 0.0f, 1.0f};
-    renderScene(scendId, false);
+    renderScene(sceneId);
     break;
   case Qt::Key_S:
     lookFrom -= {0.0f, 0.0f, 1.0f};
-    renderScene(scendId, false);
+    renderScene(sceneId);
     break;
   case Qt::Key_A:
     lookFrom += {1.0f, 0.0f, 0.0f};
-    renderScene(scendId, false);
+    renderScene(sceneId);
     break;
   case Qt::Key_D:
     lookFrom -= {1.0f, 0.0f, 0.0f};
-    renderScene(scendId, false);
+    renderScene(sceneId);
     break;
   }
 }
@@ -124,7 +158,8 @@ void MinimalOptiX::setupContext() {
   context["badColor"]->setFloat(0.f, 0.f, 0.f);
 }
 
-void MinimalOptiX::setupScene(SceneId sceneId) {
+void MinimalOptiX::setupScene() {
+  aabb.invalidate();
   if (sceneId == SCENE_SPHERES) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
@@ -500,8 +535,8 @@ void MinimalOptiX::setupScene(const char* sceneName) {
   context["topGroup"]->set(topGroup);
 }
 
-void MinimalOptiX::renderScene(SceneId sceneId, bool autoSave) {
-  setupScene(scendId);
+void MinimalOptiX::renderScene(bool autoSave, std::string fileNamePrefix) {
+  setupScene();
   context->validate();
   uint checkpoint = 1;
   for (uint i = 0; i < nSuperSampling; ++i) {
@@ -510,14 +545,14 @@ void MinimalOptiX::renderScene(SceneId sceneId, bool autoSave) {
     if (autoSave) {
       if ((i + 1) % checkpoint == 0) {
         updateContent(i + 1, false);
-        saveCurrentFrame(false);
+        saveCurrentFrame(false, fileNamePrefix + "_" + std::to_string(i + 1));
         checkpoint *= 2;
       }
     }
   }
   updateContent(nSuperSampling, true);
   if (autoSave) {
-    saveCurrentFrame(false);
+    saveCurrentFrame(false, fileNamePrefix);
   }
 }
 
@@ -556,7 +591,7 @@ void MinimalOptiX::record(int frames, const char* filename) {
   std::vector<QImage> images;
   for (int i = 0; i < frames; ++i) {
     animate(10);
-    renderScene(scendId, false);
+    renderScene();
     //if (i % 10 == 0)
     //  canvas.save(QString::number(i / 10) + QString(".png"));
     images.push_back(canvas);

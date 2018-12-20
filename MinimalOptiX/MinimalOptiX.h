@@ -40,11 +40,13 @@ public:
 	// utilities
   void compilePtx();
   void setupContext();
-  void setupScene(SceneId sceneId);
+  void setupScene();
   void setupScene(const char* sceneName);
-  void renderScene(SceneId sceneId, bool autoSave);
+  void renderScene(bool autoSave = false, std::string fileNamePrefix = "");
 	void updateContent(float nAccumulation, bool clearBuffer);
-  void saveCurrentFrame(bool popUpDialog);
+  void saveCurrentFrame(bool popUpDialog, std::string fileNamePrefix = "");
+  void imageDemo();
+  void videoDemo();
 
 	// components
 	QGraphicsScene qgscene;
@@ -58,10 +60,12 @@ public:
   std::string mtlCuFileName = "material.cu";
   std::string msCuFileName = "miss.cu";
   std::string geoCuFileName = "geometry.cu";
-  std::vector<std::string> cuFiles = { camCuFileName, exCuFileName, mtlCuFileName, msCuFileName, geoCuFileName };
+  std::vector<std::string> cuFiles = {
+    camCuFileName, exCuFileName, mtlCuFileName, msCuFileName, geoCuFileName
+  };
   
   // attributes
-  SceneId scendId = SCENE_SPHERES;
+  SceneId sceneId;
   uint fixedWidth = 960u;
   uint fixedHeight = 540u;
   uint nSuperSampling = 32u;
