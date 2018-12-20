@@ -79,6 +79,7 @@ void MinimalOptiX::saveCurrentFrame(bool popUpDialog, std::string fileNamePrefix
 }
 
 void MinimalOptiX::imageDemo() {
+  nSuperSampling = 32u;
   sceneId = SCENE_COFFEE;
   renderScene(true, "coffee");
   sceneId = SCENE_BEDROOM;
