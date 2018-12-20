@@ -23,25 +23,7 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  setupScene(scendId);
-  context->validate();
-  uint checkpoint = 1;
-  for (uint i = 0; i < nSuperSampling; ++i) {
-    context["randSeed"]->setInt(randSeed());
-    context->launch(0, fixedWidth, fixedHeight);
-    if (isHDRendering) {
-      if ((i + 1) % checkpoint == 0) {
-        updateContent(i + 1, false);
-        saveCurrentFrame(false);
-        checkpoint *= 2;
-      }
-    }
-  }
-  updateContent(nSuperSampling, false);
-  if (isHDRendering) {
-    saveCurrentFrame(false);
-  }
-  //record(50, "sample_1.mpg");
+  renderScene(scendId, false);
 }
 
 void MinimalOptiX::compilePtx() {
@@ -97,23 +79,23 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
     break;
   case Qt::Key_Return:
     animate(100);
-    render(scendId);
+    renderScene(scendId, false);
     break;
   case Qt::Key_W:
     lookFrom += {0.0f, 0.0f, 1.0f};
-    render(scendId);
+    renderScene(scendId, false);
     break;
   case Qt::Key_S:
     lookFrom -= {0.0f, 0.0f, 1.0f};
-    render(scendId);
+    renderScene(scendId, false);
     break;
   case Qt::Key_A:
     lookFrom += {1.0f, 0.0f, 0.0f};
-    render(scendId);
+    renderScene(scendId, false);
     break;
   case Qt::Key_D:
     lookFrom -= {1.0f, 0.0f, 0.0f};
-    render(scendId);
+    renderScene(scendId, false);
     break;
   }
 }
@@ -519,6 +501,27 @@ void MinimalOptiX::setupScene(const char* sceneName) {
   context["topGroup"]->set(topGroup);
 }
 
+void MinimalOptiX::renderScene(SceneId sceneId, bool autoSave) {
+  setupScene(scendId);
+  context->validate();
+  uint checkpoint = 1;
+  for (uint i = 0; i < nSuperSampling; ++i) {
+    context["randSeed"]->setInt(randSeed());
+    context->launch(0, fixedWidth, fixedHeight);
+    if (autoSave) {
+      if ((i + 1) % checkpoint == 0) {
+        updateContent(i + 1, false);
+        saveCurrentFrame(false);
+        checkpoint *= 2;
+      }
+    }
+  }
+  updateContent(nSuperSampling, true);
+  if (autoSave) {
+    saveCurrentFrame(false);
+  }
+}
+
 void MinimalOptiX::move(SphereParams& param, float time) {
   float distance = param.velocity.y * time + time * time * gravity / 2.0f;
   if (distance < param.center.y - param.radius + 0.5f) { // -0.5f is the plane
@@ -550,20 +553,11 @@ void MinimalOptiX::animate(int ticks) {
   }
 }
 
-void MinimalOptiX::render(SceneId sceneId) {
-  setupScene(sceneId);
-  for (uint i = 0; i < nSuperSampling; ++i) {
-    context["randSeed"]->setInt(randSeed());
-    context->launch(0, fixedWidth, fixedHeight);
-  }
-  updateContent(nSuperSampling, true);
-}
-
 void MinimalOptiX::record(int frames, const char* filename) {
   std::vector<QImage> images;
   for (int i = 0; i < frames; ++i) {
     animate(10);
-    render(scendId);
+    renderScene(scendId, false);
     //if (i % 10 == 0)
     //  canvas.save(QString::number(i / 10) + QString(".png"));
     images.push_back(canvas);

@@ -37,11 +37,12 @@ public:
 	// construction
 	MinimalOptiX(QWidget *parent = Q_NULLPTR);
 
-	// Utilities
+	// utilities
   void compilePtx();
   void setupContext();
   void setupScene(SceneId sceneId);
   void setupScene(const char* sceneName);
+  void renderScene(SceneId sceneId, bool autoSave);
 	void updateContent(float nAccumulation, bool clearBuffer);
   void saveCurrentFrame(bool popUpDialog);
 
@@ -52,7 +53,6 @@ public:
   
   // attributes
   SceneId scendId = SCENE_COFFEE;
-  bool isHDRendering = false;
   uint fixedWidth = 960u;
   uint fixedHeight = 540u;
   uint nSuperSampling = 32u;
@@ -94,5 +94,4 @@ private:
   // 1s = 1000ticks
   void animate(int ticks);
   void move(SphereParams& param, float time);
-  void render(SceneId sceneId);
 };
