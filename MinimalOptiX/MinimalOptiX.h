@@ -21,7 +21,7 @@ class MinimalOptiX : public QMainWindow {
 	Q_OBJECT
 
 public:
-  enum SceneId { SCENE_BASIC_TEST, SCENE_MESH_TEST, SCENE_COFFEE, SCENE_BEDROOM, SCENE_DININGROOM, SCENE_STORMTROOPER, SCENE_SPACESHIP};
+  enum SceneId { SCENE_BASIC_TEST, SCENE_MESH_TEST, SCENE_COFFEE, SCENE_BEDROOM, SCENE_DININGROOM, SCENE_STORMTROOPER, SCENE_SPACESHIP, SCENE_CORNELL };
   enum UpdateSource { OUTPUT_BUFFER, ACCU_BUFFER };
   enum RayType { RAY_TYPE_RADIANCE, RAY_TYPE_SHADOW };
 
@@ -42,11 +42,11 @@ public:
   optix::Context context;
   
   // attributes
-  SceneId scendId = SCENE_SPACESHIP;
+  SceneId scendId = SCENE_CORNELL;
   bool isHDRendering = false;
   uint fixedWidth = 960u;
   uint fixedHeight = 540u;
-  uint nSuperSampling = 512u;
+  uint nSuperSampling = 128u;
   uint rayMaxDepth = 256;
   uint defaultNScatter = 32;
   float rayMinIntensity = 0.001f;
