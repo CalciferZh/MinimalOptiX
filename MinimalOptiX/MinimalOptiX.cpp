@@ -137,20 +137,17 @@ void MinimalOptiX::setupContext() {
   accuBuffer->unmap();
   context["accuBuffer"]->set(accuBuffer);
 
-  // Exception
   Program exptProgram = context->createProgramFromPTXString(ptxStrs[exCuFileName], "exception");
   context->setExceptionProgram(0, exptProgram);
   context["badColor"]->setFloat(0.f, 0.f, 0.f);
-
-  // Miss
-  Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
-  context->setMissProgram(0, missProgram);
-  //missProgram["bgColor"]->setFloat(1.f, 1.f, 1.f);
-  missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
 }
 
 void MinimalOptiX::setupScene(SceneId sceneId) {
-  if (sceneId == SCENE_BASIC_TEST) {
+  if (sceneId == SCENE_SPHERE) {
+    Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+    context->setMissProgram(0, missProgram);
+    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
+
     // objects
     Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
     Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
@@ -238,165 +235,104 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
     context["topGroup"]->set(geoGrp);
 
-    //// camera
-    //CamParams camParams;
-    //float3 lookFrom = { 0.f, 1.f, 2.f };
-    //float3 lookAt = { 0.f, 0.f, -1.f };
-    //float3 up = { 0.f, 1.f, 0.f };
-    setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
-    Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
-    rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
-    context->setRayGenerationProgram(0, rayGenProgram);
-    // ======================================================================================================================
-  }
-  else if (sceneId == SCENE_MESH_TEST) {
-    // ======================================================================================================================
-    // objects
-    Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
-    Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
-    Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
-    Program quadBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadBBox");
-    Program meshIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshIntersect");
-    Program meshBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "meshBBox");
-    Program lambMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "lambertian");
-    Program metalMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "metal");
-    Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
-    Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
-    Program disneyMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disney");
-
-    Geometry geo = context->createGeometry();
-    geo->setPrimitiveCount(4u);
-    geo->setIntersectionProgram(meshIntersect);
-    geo->setBoundingBoxProgram(meshBBox);
-
-    Buffer vertexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, 4u);
-    float vertBufSrc[] = {
-      0.f, 0.f, -0.75f,
-      0.5f, 0.f, 0.25f,
-      -0.5f, 0.f, 0.25f,
-      0.f, 1.f, 0.f
-    };
-    memcpy(vertexBuffer->map(), vertBufSrc, sizeof(float) * 12);
-    vertexBuffer->unmap();
-    geo["vertexBuffer"]->set(vertexBuffer);
-
-    Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, 0);
-    geo["normalBuffer"]->set(normalBuffer);
-    Buffer texcoordBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, 0);
-    geo["texcoordBuffer"]->set(texcoordBuffer);
-
-
-    Buffer indexBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_INT3, 4u);
-    int idxBufSrc[] = {
-      1, 0, 3,
-      1, 3, 2,
-      3, 0, 2,
-      0, 1, 2
-    };
-    memcpy(indexBuffer->map(), idxBufSrc, sizeof(int) * 12);
-    indexBuffer->unmap();
-    geo["indexBuffer"]->set(indexBuffer);
-
-    Material mtl = context->createMaterial();
-    mtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
-    LambertianParams lambParams = { { 0.3f, 0.5f, 0.7f }, 16, 1 };
-    mtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
-
-    GeometryInstance gi = context->createGeometryInstance(geo, &mtl, &mtl + 1);
-
-    GeometryGroup grp = context->createGeometryGroup();
-    grp->setChildCount(1u);
-    grp->setChild(0, gi);
-    grp->setAcceleration(context->createAcceleration("NoAccel"));
-    context["topGroup"]->set(grp);
-
-    // Camera
-    CamParams camParams;
-    auto lookFrom = make_float3(0.f, 0.3f, -2.f);
-    auto lookAt = make_float3(0.f, 0.3f, 0.f);
-    auto up = make_float3(0.f, 1.f, 0.f);
+    lookFrom = { 0.f, 1.f, 2.f };
+    lookAt = { 0.f, 0.f, -1.f };
+    up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
   else if (sceneId == SCENE_COFFEE) {
+    Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+    context->setMissProgram(0, missProgram);
+    missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
     setupScene("coffee");
-    CamParams camParams;
-    float3 lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
-    float3 lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
-    float3 up = { 0.f, 1.f, 0.f };
+    lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
+    lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
+    up = make_float3(0.f, 1.f, 0.f);
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
   else if (sceneId == SCENE_BEDROOM) {
+    Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+    context->setMissProgram(0, missProgram);
+    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("bedroom");
-    CamParams camParams;
-    float3 lookFrom = aabb.center() + make_float3(0.3f, 0.1f, 0.45f) * aabb.extent();
-    float3 lookAt = aabb.center() + make_float3(0.05f, -0.1f, 0.f) * aabb.extent();
-    float3 up = { 0.f, 1.f, 0.f };
+    lookFrom = aabb.center() + make_float3(0.3f, 0.1f, 0.45f) * aabb.extent();
+    lookAt = aabb.center() + make_float3(0.05f, -0.1f, 0.f) * aabb.extent();
+    up = make_float3(0.f, 1.f, 0.f);
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
   else if (sceneId == SCENE_DININGROOM) {
+    Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+    context->setMissProgram(0, missProgram);
+    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("diningroom");
-    CamParams camParams;
-    float3 lookFrom = aabb.center() + make_float3(-0.7f, 0.f, 0.f) * aabb.extent();
-    float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
-    float3 up = { 0.f, 1.f, 0.f };
+    lookFrom = aabb.center() + make_float3(-0.7f, 0.f, 0.f) * aabb.extent();
+    lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    up = make_float3(0.f, 1.f, 0.f);
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
   else if (sceneId == SCENE_STORMTROOPER) {
+    Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+    context->setMissProgram(0, missProgram);
+    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("stormtrooper");
-    CamParams camParams;
-    float3 lookFrom = aabb.center() + make_float3(0.25f, 0.1f, 0.395f) * aabb.extent();
-    float3 lookAt = aabb.center() + make_float3(0.25f, 0.1f, 0.f) * aabb.extent();
-    float3 up = { 0.f, 1.f, 0.f };
+    lookFrom = aabb.center() + make_float3(0.25f, 0.1f, 0.395f) * aabb.extent();
+    lookAt = aabb.center() + make_float3(0.25f, 0.1f, 0.f) * aabb.extent();
+    up = make_float3(0.f, 1.f, 0.f);
     setCamParams(lookFrom, lookAt, up, 30, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
   else if (sceneId == SCENE_SPACESHIP) {
+    Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+    context->setMissProgram(0, missProgram);
+    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("spaceship");
-    CamParams camParams;
-    float3 lookFrom = aabb.center() + make_float3(-0.03f, 0.03f, -0.03f) * aabb.extent();
-    float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
-    float3 up = { 0.f, 1.f, 0.f };
+    lookFrom = aabb.center() + make_float3(-0.03f, 0.03f, -0.03f) * aabb.extent();
+    lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    up = make_float3(0.f, 1.f, 0.f);
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
   else if (sceneId == SCENE_CORNELL) {
+    Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+    context->setMissProgram(0, missProgram);
+    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("cornell");
-    CamParams camParams;
-    float3 lookFrom = aabb.center() + make_float3(0.f, 0.f, -2.f) * aabb.extent();
-    float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
-    float3 up = { 0.f, 1.f, 0.f };
+    lookFrom = aabb.center() + make_float3(0.f, 0.f, -2.f) * aabb.extent();
+    lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    up = make_float3(0.f, 1.f, 0.f);
     setCamParams(lookFrom, lookAt, up, 39.3077, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   }
   else if (sceneId == SCENE_HYPERION || sceneId == SCENE_DRAGON) {
+    Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+    context->setMissProgram(0, missProgram);
+    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("hyperion");
-    CamParams camParams;
-    float3 lookFrom;
     if (sceneId == SCENE_HYPERION) {
       lookFrom = aabb.center() + make_float3(-0.08f, 2.f, 0.f) * aabb.extent();
     } else {
       lookFrom = aabb.center() + make_float3(0.05f, 0.3f, -0.005f) * aabb.extent();
     }
-    float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
-    float3 up = { 0.f, 1.f, 0.f };
+    lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    up = make_float3(0.f, 1.f, 0.f);
     setCamParams(lookFrom, lookAt, up, 30, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);

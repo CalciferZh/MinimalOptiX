@@ -21,7 +21,17 @@ class MinimalOptiX : public QMainWindow {
 	Q_OBJECT
 
 public:
-  enum SceneId { SCENE_BASIC_TEST, SCENE_MESH_TEST, SCENE_COFFEE, SCENE_BEDROOM, SCENE_DININGROOM, SCENE_STORMTROOPER, SCENE_SPACESHIP, SCENE_CORNELL, SCENE_HYPERION, SCENE_DRAGON };
+  enum SceneId {
+    SCENE_SPHERE,
+    SCENE_COFFEE,
+    SCENE_BEDROOM,
+    SCENE_DININGROOM,
+    SCENE_STORMTROOPER,
+    SCENE_SPACESHIP,
+    SCENE_CORNELL, 
+    SCENE_HYPERION, 
+    SCENE_DRAGON
+  };
   enum RayType { RAY_TYPE_RADIANCE, RAY_TYPE_SHADOW };
 
 	// construction
@@ -45,7 +55,7 @@ public:
   bool isHDRendering = false;
   uint fixedWidth = 960u;
   uint fixedHeight = 540u;
-  uint nSuperSampling = 128u;
+  uint nSuperSampling = 32u;
   uint rayMaxDepth = 256;
   uint defaultNScatter = 32;
   float rayMinIntensity = 0.001f;
@@ -63,9 +73,9 @@ public:
 
   // camera
   CamParams camParams;
-  optix::float3 lookFrom = { 0.f, 1.f, 2.f };
-  optix::float3 lookAt = { 0.f, 0.f, -1.f };
-  optix::float3 up = { 0.f, 1.f, 0.f };
+  optix::float3 lookFrom;
+  optix::float3 lookAt;
+  optix::float3 up;
 
   // animation
   const float gravity = 9.8f;
