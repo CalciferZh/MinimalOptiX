@@ -22,7 +22,7 @@ class MinimalOptiX : public QMainWindow {
 
 public:
   enum SceneId {
-    SCENE_SPHERE,
+    SCENE_SPHERES,
     SCENE_COFFEE,
     SCENE_BEDROOM,
     SCENE_DININGROOM,
@@ -50,26 +50,24 @@ public:
 	QGraphicsScene qgscene;
 	QImage canvas;
   optix::Context context;
-  
-  // attributes
-  SceneId scendId = SCENE_COFFEE;
-  uint fixedWidth = 960u;
-  uint fixedHeight = 540u;
-  uint nSuperSampling = 32u;
-  uint rayMaxDepth = 256;
-  uint defaultNScatter = 32;
-  float rayMinIntensity = 0.001f;
-  float rayEpsilonT = 0.001f;
   optix::Aabb aabb;
   std::map<std::string, std::string> ptxStrs;
   std::string baseSceneFolder = "scenes/";
-
   std::string camCuFileName = "camera.cu";
   std::string exCuFileName = "exception.cu";
   std::string mtlCuFileName = "material.cu";
   std::string msCuFileName = "miss.cu";
   std::string geoCuFileName = "geometry.cu";
   std::vector<std::string> cuFiles = { camCuFileName, exCuFileName, mtlCuFileName, msCuFileName, geoCuFileName };
+  
+  // attributes
+  SceneId scendId = SCENE_SPHERES;
+  uint fixedWidth = 960u;
+  uint fixedHeight = 540u;
+  uint nSuperSampling = 32u;
+  uint rayMaxDepth = 256u;
+  float rayMinIntensity = 0.001f;
+  float rayEpsilonT = 0.001f;
 
   // camera
   CamParams camParams;

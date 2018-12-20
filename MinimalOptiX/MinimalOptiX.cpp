@@ -125,7 +125,7 @@ void MinimalOptiX::setupContext() {
 }
 
 void MinimalOptiX::setupScene(SceneId sceneId) {
-  if (sceneId == SCENE_SPHERE) {
+  if (sceneId == SCENE_SPHERES) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
@@ -149,7 +149,7 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     Material sphereMidMtl = context->createMaterial();
 
     sphereMidMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
-    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f}, defaultNScatter, 1 };
+    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f} };
     sphereMidMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
     GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
@@ -188,7 +188,6 @@ void MinimalOptiX::setupScene(SceneId sceneId) {
     Material quadFloorMtl = context->createMaterial();
     quadFloorMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
     lambParams.albedo = make_float3(0.8f, 0.8f, 0.f);
-    lambParams.scatterMaxDepth = 1;
     quadFloorMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
     GeometryInstance quadFloorGI = context->createGeometryInstance(quadFloor, &quadFloorMtl, &quadFloorMtl + 1);
 

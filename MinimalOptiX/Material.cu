@@ -30,27 +30,19 @@ RT_PROGRAM void lambertian() {
     pld.color = absorbColor;
     return;
   }
-  int nNewRay = lambParams.nScatter;
-  if (pld.depth > lambParams.scatterMaxDepth) {
-    nNewRay = 1;
-  }
   float3 tmpColor = { 0.f, 0.f, 0.f };
-  Ray newRay;
-  newRay.origin = ray.origin + t * ray.direction;
-  newRay.ray_type = rayTypeRadiance;
-  newRay.tmin = rayEpsilonT;
-  newRay.tmax = RT_DEFAULT_MAX;
+  Ray newRay(
+    ray.origin + t * ray.direction,
+    normalize(geoNormal + randInUnitSphere(pld.randSeed)),
+    rayTypeRadiance,
+    rayEpsilonT
+  );
   Payload newPld;
   newPld.depth = pld.depth + 1;
-  for (int i = 0; i < nNewRay; ++i) {
-    newRay.direction = normalize(geoNormal + randInUnitSphere(pld.randSeed));
-    newPld.color = make_float3(1.f);
-    newPld.randSeed = tea<16>(pld.randSeed, newPld.depth * lambParams.nScatter + i);
-    rtTrace(topGroup, newRay, newPld);
-    tmpColor += newPld.color;
-  }
-  tmpColor /= nNewRay;
-  pld.color = tmpColor * lambParams.albedo;
+  newPld.color = make_float3(1.f);
+  newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
+  rtTrace(topGroup, newRay, newPld);
+  pld.color = newPld.color * lambParams.albedo;
 }
 
 // ====================== metal ==========================
@@ -62,15 +54,15 @@ RT_PROGRAM void metal() {
     pld.color = absorbColor;
     return;
   }
-  Ray newRay;
-  newRay.origin = ray.origin + t * ray.direction;
-  newRay.direction = normalize(reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(pld.randSeed));
-  newRay.ray_type = rayTypeRadiance;
-  newRay.tmin = rayEpsilonT;
-  newRay.tmax = RT_DEFAULT_MAX;
+  Ray newRay(
+    ray.origin + t * ray.direction,
+    normalize(reflect(ray.direction, geoNormal) + metalParams.fuzz * randInUnitSphere(pld.randSeed)),
+    rayTypeRadiance,
+    rayEpsilonT
+  );
   Payload newPld;
-  newPld.color = make_float3(1.f);
   newPld.depth = pld.depth + 1;
+  newPld.color = make_float3(1.f);
   newPld.randSeed = tea<16>(pld.randSeed, newPld.depth);
   rtTrace(topGroup, newRay, newPld);
   pld.color = metalParams.albedo * newPld.color;
