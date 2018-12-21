@@ -79,7 +79,7 @@ void MinimalOptiX::saveCurrentFrame(bool popUpDialog, std::string fileNamePrefix
 }
 
 void MinimalOptiX::imageDemo() {
-  nSuperSampling = 32u;
+  nSuperSampling = 4096u;
   sceneId = SCENE_COFFEE;
   renderScene(true, "coffee");
   sceneId = SCENE_BEDROOM;
@@ -87,7 +87,7 @@ void MinimalOptiX::imageDemo() {
   sceneId = SCENE_DININGROOM;
   renderScene(true, "diningroom");
   sceneId = SCENE_STORMTROOPER;
-  renderScene(true, "stormtroop");
+  renderScene(true, "stormtrooper");
   sceneId = SCENE_SPACESHIP;
   renderScene(true, "spaceship");
   sceneId = SCENE_CORNELL;
@@ -276,7 +276,7 @@ void MinimalOptiX::setupScene() {
   else if (sceneId == SCENE_BEDROOM) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
-    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
+    missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
     setupScene("bedroom");
     lookFrom = aabb.center() + make_float3(0.3f, 0.1f, 0.45f) * aabb.extent();
     lookAt = aabb.center() + make_float3(0.05f, -0.1f, 0.f) * aabb.extent();
@@ -289,7 +289,7 @@ void MinimalOptiX::setupScene() {
   else if (sceneId == SCENE_DININGROOM) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
-    missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
+    missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
     setupScene("diningroom");
     lookFrom = aabb.center() + make_float3(-0.7f, 0.f, 0.f) * aabb.extent();
     lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
