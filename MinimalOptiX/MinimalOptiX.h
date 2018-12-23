@@ -16,6 +16,18 @@
 #include "structures.h"
 #include "scene.h"
 
+struct VideoParams {
+  // static
+  std::vector<optix::GeometryInstance> spheres;
+  // animation
+  const float gravity = 49.f;
+  const float attenuationCoef = 0.95f;
+  // dynamic
+  float angle{ 0.0 };
+  optix::float3 lookAt { 0.f, 0.f, 0.f };
+  optix::float3 up { 0.f, 1.f, 0.f };
+  std::vector<SphereParams> spheresParams;
+};
 
 class MinimalOptiX : public QMainWindow {
 	Q_OBJECT
@@ -30,7 +42,8 @@ public:
     SCENE_SPACESHIP,
     SCENE_CORNELL, 
     SCENE_HYPERION, 
-    SCENE_DRAGON
+    SCENE_DRAGON,
+    SCENE_SPHERES_VIDEO
   };
   enum RayType { RAY_TYPE_RADIANCE, RAY_TYPE_SHADOW };
 
@@ -73,19 +86,8 @@ public:
   float rayMinIntensity = 0.001f;
   float rayEpsilonT = 0.001f;
 
-  // camera
-  CamParams camParams;
-  optix::float3 lookFrom;
-  optix::float3 lookAt;
-  optix::float3 up;
 
-  // animation
-  const float gravity = 9.8f;
-  const float attenuationCoef = 0.95f;
-  SphereParams sphereParams[3] = { { 0.5f, { 0.f, 0.5f, -1.f }, { 0.f, 0.f, 0.f } } ,
-                                   { 0.4f, { 1.f, 0.5f, -1.f }, { 0.f, 0.5f, 0.f } } ,
-                                   { 0.3f, { -1.f, 0.5f, -1.f }, { 0.f, -1.5f, 0.f } } };
-
+  VideoParams videoParams;
   // user interface
   void keyPressEvent(QKeyEvent* e);
   void record(int frames, const char* filename);
@@ -93,7 +95,10 @@ public:
 private:
 	Ui::MinimalOptiXClass ui;
 
-  // 1s = 1000ticks
-  void animate(int ticks);
+  void animate(float time);
   void move(SphereParams& param, float time);
+  void setUpVideo(int nSpheres);
+  void updateVideo();
+
+  optix::GeometryInstance buildLight(optix::float3 anchor, optix::float3 v1, optix::float3 v2, optix::Program& quadIntersect, optix::Program& quadBBox, optix::Program& lightMtl);
 };

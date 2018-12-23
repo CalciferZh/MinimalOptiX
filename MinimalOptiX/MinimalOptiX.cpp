@@ -1,3 +1,4 @@
+#include <random>
 #include "MinimalOptiX.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -23,12 +24,12 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
 
   compilePtx();
   setupContext();
-  imageDemo();
+  //imageDemo();
+  videoDemo();
 }
 
 void MinimalOptiX::compilePtx() {
   std::string value;
-
   for (auto& key : cuFiles) {
     cuFileToPtxStr(key, value);
     ptxStrs.insert(std::make_pair(key, value));
@@ -105,6 +106,10 @@ void MinimalOptiX::imageDemo() {
 }
 
 void MinimalOptiX::videoDemo() {
+  nSuperSampling = 1u;
+  sceneId = SCENE_SPHERES_VIDEO;
+  renderScene(false, "VIDEO");
+  //record(25, "test.mpg");
 }
 
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
@@ -113,24 +118,7 @@ void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
     saveCurrentFrame(true);
     break;
   case Qt::Key_Return:
-    animate(100);
-    renderScene(sceneId);
-    break;
-  case Qt::Key_W:
-    lookFrom += {0.0f, 0.0f, 1.0f};
-    renderScene(sceneId);
-    break;
-  case Qt::Key_S:
-    lookFrom -= {0.0f, 0.0f, 1.0f};
-    renderScene(sceneId);
-    break;
-  case Qt::Key_A:
-    lookFrom += {1.0f, 0.0f, 0.0f};
-    renderScene(sceneId);
-    break;
-  case Qt::Key_D:
-    lookFrom -= {1.0f, 0.0f, 0.0f};
-    renderScene(sceneId);
+    updateVideo();
     break;
   }
 }
@@ -162,6 +150,10 @@ void MinimalOptiX::setupContext() {
 void MinimalOptiX::setupScene() {
   aabb.invalidate();
   if (sceneId == SCENE_SPHERES) {
+    SphereParams sphereParams[3] = { { 0.5f,{ 0.f, 0.5f, -1.f },{ 0.f, 0.f, 0.f } } ,
+    { 0.4f,{ 1.f, 0.5f, -1.f },{ 0.f, 0.5f, 0.f } } ,
+    { 0.3f,{ -1.f, 0.5f, -1.f },{ 0.f, -1.5f, 0.f } } };
+
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
@@ -251,10 +243,10 @@ void MinimalOptiX::setupScene() {
     }
     geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
     context["topGroup"]->set(geoGrp);
-
-    lookFrom = { 0.f, 1.f, 2.f };
-    lookAt = { 0.f, 0.f, -1.f };
-    up = { 0.f, 1.f, 0.f };
+    CamParams camParams;
+    optix::float3 lookFrom = { 0.f, 1.f, 2.f };
+    optix::float3 lookAt = { 0.f, 0.f, -1.f };
+    optix::float3 up = { 0.f, 1.f, 0.f };
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
@@ -265,9 +257,10 @@ void MinimalOptiX::setupScene() {
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
     setupScene("coffee");
-    lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
-    lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
-    up = make_float3(0.f, 1.f, 0.f);
+    optix::float3 lookFrom = make_float3(0.f, 0.22 * aabb.extent(1), 0.25 * aabb.extent(2));
+    optix::float3 lookAt = lookFrom + make_float3(0.f, -0.01875f, -1.f);
+    optix::float3 up = make_float3(0.f, 1.f, 0.f);
+    CamParams camParams;
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
@@ -278,9 +271,10 @@ void MinimalOptiX::setupScene() {
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
     setupScene("bedroom");
-    lookFrom = aabb.center() + make_float3(0.3f, 0.1f, 0.45f) * aabb.extent();
-    lookAt = aabb.center() + make_float3(0.05f, -0.1f, 0.f) * aabb.extent();
-    up = make_float3(0.f, 1.f, 0.f);
+    optix::float3 lookFrom = aabb.center() + make_float3(0.3f, 0.1f, 0.45f) * aabb.extent();
+    optix::float3 lookAt = aabb.center() + make_float3(0.05f, -0.1f, 0.f) * aabb.extent();
+    optix::float3 up = make_float3(0.f, 1.f, 0.f);
+    CamParams camParams;
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
@@ -291,9 +285,10 @@ void MinimalOptiX::setupScene() {
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
     setupScene("diningroom");
-    lookFrom = aabb.center() + make_float3(-0.7f, 0.f, 0.f) * aabb.extent();
-    lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
-    up = make_float3(0.f, 1.f, 0.f);
+    optix::float3 lookFrom = aabb.center() + make_float3(-0.7f, 0.f, 0.f) * aabb.extent();
+    optix::float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    optix::float3 up = make_float3(0.f, 1.f, 0.f);
+    CamParams camParams;
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
@@ -304,9 +299,10 @@ void MinimalOptiX::setupScene() {
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("stormtrooper");
-    lookFrom = aabb.center() + make_float3(0.25f, 0.1f, 0.395f) * aabb.extent();
-    lookAt = aabb.center() + make_float3(0.25f, 0.1f, 0.f) * aabb.extent();
-    up = make_float3(0.f, 1.f, 0.f);
+    optix::float3 lookFrom = aabb.center() + make_float3(0.25f, 0.1f, 0.395f) * aabb.extent();
+    optix::float3 lookAt = aabb.center() + make_float3(0.25f, 0.1f, 0.f) * aabb.extent();
+    optix::float3 up = make_float3(0.f, 1.f, 0.f);
+    CamParams camParams;
     setCamParams(lookFrom, lookAt, up, 30, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
@@ -317,9 +313,10 @@ void MinimalOptiX::setupScene() {
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("spaceship");
-    lookFrom = aabb.center() + make_float3(-0.03f, 0.03f, -0.03f) * aabb.extent();
-    lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
-    up = make_float3(0.f, 1.f, 0.f);
+    optix::float3 lookFrom = aabb.center() + make_float3(-0.03f, 0.03f, -0.03f) * aabb.extent();
+    optix::float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    optix::float3 up = make_float3(0.f, 1.f, 0.f);
+    CamParams camParams;
     setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
@@ -330,9 +327,10 @@ void MinimalOptiX::setupScene() {
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("cornell");
-    lookFrom = aabb.center() + make_float3(0.f, 0.f, -2.f) * aabb.extent();
-    lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
-    up = make_float3(0.f, 1.f, 0.f);
+    optix::float3 lookFrom = aabb.center() + make_float3(0.f, 0.f, -2.f) * aabb.extent();
+    optix::float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    optix::float3 up = make_float3(0.f, 1.f, 0.f);
+    CamParams camParams;
     setCamParams(lookFrom, lookAt, up, 39.3077, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
@@ -343,17 +341,21 @@ void MinimalOptiX::setupScene() {
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
     setupScene("hyperion");
+    optix::float3 lookFrom;
     if (sceneId == SCENE_HYPERION) {
       lookFrom = aabb.center() + make_float3(-0.08f, 2.f, 0.f) * aabb.extent();
     } else {
       lookFrom = aabb.center() + make_float3(0.05f, 0.3f, -0.005f) * aabb.extent();
     }
-    lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
-    up = make_float3(0.f, 1.f, 0.f);
+    optix::float3 lookAt = aabb.center() + make_float3(0.f, 0.f, 0.f) * aabb.extent();
+    optix::float3 up = make_float3(0.f, 1.f, 0.f);
+    CamParams camParams;
     setCamParams(lookFrom, lookAt, up, 30, (float)fixedWidth / (float)fixedHeight, camParams);
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
+  } else if (sceneId == SCENE_SPHERES_VIDEO) {
+    setUpVideo(32);
   }
 }
 
@@ -558,15 +560,15 @@ void MinimalOptiX::renderScene(bool autoSave, std::string fileNamePrefix) {
 }
 
 void MinimalOptiX::move(SphereParams& param, float time) {
-  float distance = param.velocity.y * time + time * time * gravity / 2.0f;
+  float distance = param.velocity.y * time + time * time * videoParams.gravity / 2.0f;
   if (distance < param.center.y - param.radius + 0.5f) { // -0.5f is the plane
     param.center.x += param.velocity.x * time;
     param.center.z += param.velocity.z * time;
     param.center.y -= distance;
-    param.velocity.y += gravity * time;
+    param.velocity.y += videoParams.gravity * time;
   } else {
-    float vend = sqrt(param.velocity.y * param.velocity.y + (2.0f * gravity * (param.center.y - param.radius + 0.5f)));
-    float t = (vend - param.velocity.y) / gravity;
+    float vend = sqrt(param.velocity.y * param.velocity.y + (2.0f * videoParams.gravity * (param.center.y - param.radius + 0.5f)));
+    float t = (vend - param.velocity.y) / videoParams.gravity;
     if (t < 1e-6) {
       param.velocity.y = 0.f;
       param.center.y = -0.5f + param.radius;
@@ -575,27 +577,196 @@ void MinimalOptiX::move(SphereParams& param, float time) {
     param.center.x += param.velocity.x * t;
     param.center.z += param.velocity.z * t;
     param.center.y = -0.5f + param.radius;
-    param.velocity.x *= attenuationCoef;
-    param.velocity.y *= attenuationCoef;
-    param.velocity.y = -vend * attenuationCoef;
+    param.velocity.x *= videoParams.attenuationCoef;
+    param.velocity.y *= videoParams.attenuationCoef;
+    param.velocity.y = -vend * videoParams.attenuationCoef;
     move(param, time - t);
   }
 }
 
-void MinimalOptiX::animate(int ticks) {
-  for (int i = 0; i < 3; ++i) {
-    move(sphereParams[i], ticks / 1000.f);
+void MinimalOptiX::animate(float time) {
+  videoParams.angle += time * 5;
+  for (size_t i = 0; i < videoParams.spheresParams.size(); ++i) {
+    move(videoParams.spheresParams[i], time);
   }
 }
 
 void MinimalOptiX::record(int frames, const char* filename) {
   std::vector<QImage> images;
   for (int i = 0; i < frames; ++i) {
-    animate(10);
-    renderScene();
-    //if (i % 10 == 0)
-    //  canvas.save(QString::number(i / 10) + QString(".png"));
-    images.push_back(canvas);
+    updateVideo();
+    images.push_back(canvas.copy());
+    std::string name = "video" + std::to_string(i);
+    saveCurrentFrame(false, name);
+    if (i % 10 == 9) {
+      std::string _tmp = filename + std::to_string(i);
+      generateVideo(images, _tmp.c_str());
+    }
   }
   generateVideo(images, filename);
+}
+
+void MinimalOptiX::setUpVideo(int nSpheres) {
+  std::vector<GeometryInstance> objs;
+  Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
+  context->setMissProgram(0, missProgram);
+  missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
+  Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
+  Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
+  Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
+  Program quadBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadBBox");
+  Program lambMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "lambertian");
+  Program metalMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "metal");
+  Program lightMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "light");
+  Program glassMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "glass");
+  Program disneyMtl = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disney");
+  Program disneyAnyHit = context->createProgramFromPTXString(ptxStrs[mtlCuFileName], "disneyAnyHit");
+  int parameter = 4;
+
+  std::mt19937 random(42);
+  std::normal_distribution<float> stdNormal(0.0f, 0.1f);
+  std::uniform_real_distribution<float> uniform(0.0f, 1.0f);
+  std::uniform_int_distribution<int> uniform_int(0, 2);
+  float radius = 10.f / nSpheres;
+  for (int i = 0; i < nSpheres; ++i) {
+    for (int j = 0; j < nSpheres; ++j) {
+      videoParams.spheresParams.push_back( { (uniform(random) + 1) / 2 * radius,
+        { -10.f + radius * (2 * i + 1), 2.f - abs(i + j - nSpheres) * 0.03f, -20.f + radius * (2 * j + 1) },
+        { 0.f, sqrt(2 * videoParams.gravity * abs(i + j - nSpheres) * 0.03f), 0.f } });
+      Geometry sphere = context->createGeometry();
+      sphere->setPrimitiveCount(1u);
+      sphere->setIntersectionProgram(sphereIntersect);
+      sphere->setBoundingBoxProgram(sphereBBox);
+      sphere["sphereParams"]->setUserData(sizeof(SphereParams), &(videoParams.spheresParams.back()));
+      Material sphereMtl = context->createMaterial();
+      int type = uniform_int(random);
+      if (type == 0) {
+        sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
+        LambertianParams lambParams{ { uniform(random), uniform(random), uniform(random) } };
+        sphereMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
+      } else if (type == 1) {
+        sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, metalMtl);
+        float tmp = stdNormal(random) + 0.5;
+        tmp = min(0.9f, max(0.1f, tmp));
+        MetalParams metalParams{ { uniform(random), uniform(random), uniform(random) }, tmp};
+        sphereMtl["metalParams"]->setUserData(sizeof(MetalParams), &metalParams);
+      } else {
+        float tmp = stdNormal(random) + 2.0;
+        tmp = min(3.0f, max(1.5f, tmp));
+        sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, glassMtl);
+        GlassParams glassParams{ { 1.f, 1.f, 1.f }, tmp };
+        sphereMtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
+      }
+
+      //sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
+      //sphereMtl->setAnyHitProgram(RAY_TYPE_SHADOW, disneyAnyHit);
+      //DisneyParams disneyParams{ RT_TEXTURE_ID_NULL,          
+      //{ 0.0,0.0,0.0 },
+      //{ 0.0,0.0,0.0 },
+      //  0.0,
+      //  0.0,
+      //  0.0,
+      //  0.0,
+      //  0.0,
+      //  0.0,
+      //  0.0,
+      //  0.0,
+      //  0.0,
+      //  0.0,
+      //  NORMAL };
+      //sphereMtl["disneyParams"]->setUserData(sizeof(DisneyParams), &disneyParams);
+      
+      videoParams.spheres.push_back(std::move(context->createGeometryInstance(sphere, &sphereMtl, &sphereMtl + 1)));
+    }
+  }
+  
+  Geometry quadFloor = context->createGeometry();
+  quadFloor->setPrimitiveCount(1u);
+  quadFloor->setIntersectionProgram(quadIntersect);
+  quadFloor->setBoundingBoxProgram(quadBBox);
+  QuadParams quadParams;
+  float3 anchor  { -10.f, -0.5f, 0.f };
+  float3 v1 { 0.f, 0.f, -20.f };
+  float3 v2 { 20.f, 0.f, 0.f };
+  setQuadParams(anchor, v1, v2, quadParams);
+  quadFloor["quadParams"]->setUserData(sizeof(QuadParams), &quadParams);
+  Material quadFloorMtl = context->createMaterial();
+  quadFloorMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, metalMtl);
+  MetalParams metalParams{ { 0.7f, 0.9f, 0.9f }, 0.2f };
+  quadFloorMtl["metalParams"]->setUserData(sizeof(MetalParams), &metalParams);
+  objs.push_back(context->createGeometryInstance(quadFloor, &quadFloorMtl, &quadFloorMtl + 1));
+  
+  std::vector<GeometryInstance> lights;
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      lights.push_back(buildLight({ -7.5f + 5.f*i, 7.5f, -2.5f + -5.f*j }, { 0.f, 0.f, -2.5f }, { 2.5f, 0.f, 0.f }, quadIntersect, quadBBox, lightMtl));
+    }
+  }
+  lights.push_back(buildLight({  -1.f, 0.5f, -75.f }, { 0.f, -0.5f, 0.f }, { 0.5f, 0.f,  0.f }, quadIntersect, quadBBox, lightMtl));
+  lights.push_back(buildLight({  -1.f, 0.5f,  25.f }, { 0.f,  0.5f, 0.f }, { 0.5f, 0.f,  0.f }, quadIntersect, quadBBox, lightMtl));
+  lights.push_back(buildLight({ -50.f, 0.5f, 9.f   }, { 0.f,  0.5f, 0.f }, {  0.f, 0.f, 0.5f }, quadIntersect, quadBBox, lightMtl));
+  lights.push_back(buildLight({  50.f, 0.5f, 9.f   }, { 0.f, -0.5f, 0.f }, {  0.f, 0.f, 0.5f }, quadIntersect, quadBBox, lightMtl));
+
+  Buffer lightBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+  lightBuffer->setElementSize(sizeof(LightParams));
+  lightBuffer->setSize(lights.size());
+  LightParams* lightBufData = (LightParams*)lightBuffer->map();
+  for (int i = 0; i < lights.size(); ++i) {
+    memcpy(lightBufData + i, &(lights[i]), sizeof(LightParams));
+  }
+  lightBuffer->unmap();
+  context["lights"]->setBuffer(lightBuffer);
+  
+  for (auto& obj : videoParams.spheres) objs.push_back(obj);
+  for (auto&& obj : lights) objs.push_back(obj);
+  GeometryGroup geoGrp = context->createGeometryGroup();
+  geoGrp->setChildCount(uint(objs.size()));
+  for (auto i = 0; i < objs.size(); ++i) {
+    geoGrp->setChild(i, objs[i]);
+  }
+  geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
+  context["topGroup"]->set(geoGrp);
+  CamParams camParams;
+  optix::float3 lookFrom = { 0.f, 4.0f, -30.f };
+  optix::float3 lookAt = { 0.f, 0.f, 0.f };
+  optix::float3 up = { 0.f, 1.f, 0.f };
+  setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
+  Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+  rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+  context->setRayGenerationProgram(0, rayGenProgram);
+}
+
+void MinimalOptiX::updateVideo() {
+  animate(0.002);
+  for (size_t i = 0; i < videoParams.spheres.size(); ++i)
+    videoParams.spheres[i]->getGeometry()["sphereParams"]->setUserData(sizeof(SphereParams), &(videoParams.spheresParams[i]));
+  CamParams camParams;
+  float3 lookfrom = make_float3(20*sin(videoParams.angle), min(7.0, videoParams.angle / 10 + 4.0), -10-20*cos(videoParams.angle));
+  setCamParams(lookfrom, videoParams.lookAt, videoParams.up, 45, (float)fixedWidth / (float)fixedHeight, camParams);
+  Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "pinholeCamera");
+  rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
+  context->setRayGenerationProgram(0, rayGenProgram);
+  //context->validate();
+  uint checkpoint = 1;
+  for (uint i = 0; i < nSuperSampling; ++i) {
+    context["randSeed"]->setInt(randSeed());
+    context->launch(0, fixedWidth, fixedHeight);
+  }
+  updateContent(nSuperSampling, true);
+}
+
+GeometryInstance MinimalOptiX::buildLight(float3 anchor, float3 v1, float3 v2, Program& quadIntersect, Program& quadBBox, Program& lightMtl) {
+  Geometry quadLight = context->createGeometry();
+  QuadParams quadParams;
+  quadLight->setPrimitiveCount(1u);
+  quadLight->setIntersectionProgram(quadIntersect);
+  quadLight->setBoundingBoxProgram(quadBBox);
+  setQuadParams(anchor, v1, v2, quadParams);
+  quadLight["quadParams"]->setUserData(sizeof(QuadParams), &quadParams);
+  Material quadLightMtl = context->createMaterial();
+  quadLightMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lightMtl);
+  LightParams lightParams;
+  lightParams.emission = make_float3(1.f);
+  quadLightMtl["lightParams"]->setUserData(sizeof(LightParams), &lightParams);
+  return context->createGeometryInstance(quadLight, &quadLightMtl, &quadLightMtl + 1);
 }
