@@ -34,6 +34,7 @@ RT_PROGRAM void sphereIntersect(int) {
     shadingNormal = geoNormal;
     frontHitPoint = ray.origin + t * ray.direction;
     backHitPoint = frontHitPoint;
+    texcoord = make_float3(0.f);
     if (rtReportIntersection(0)) {
       checkSecond = false;
     }
@@ -47,6 +48,7 @@ RT_PROGRAM void sphereIntersect(int) {
       shadingNormal = geoNormal;
       frontHitPoint = ray.origin + t * ray.direction;
       backHitPoint = frontHitPoint;
+      texcoord = make_float3(0.f);
       rtReportIntersection(0);
     }
   }

@@ -106,7 +106,7 @@ void MinimalOptiX::imageDemo() {
 }
 
 void MinimalOptiX::videoDemo() {
-  nSuperSampling = 1u;
+  nSuperSampling = 32u;
   sceneId = SCENE_SPHERES_VIDEO;
   renderScene(false, "VIDEO");
   //record(25, "test.mpg");
@@ -658,23 +658,23 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
         sphereMtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
       }
 
-      //sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
-      //sphereMtl->setAnyHitProgram(RAY_TYPE_SHADOW, disneyAnyHit);
-      //DisneyParams disneyParams{ RT_TEXTURE_ID_NULL,          
-      //{ 0.0,0.0,0.0 },
-      //{ 0.0,0.0,0.0 },
-      //  0.0,
-      //  0.0,
-      //  0.0,
-      //  0.0,
-      //  0.0,
-      //  0.0,
-      //  0.0,
-      //  0.0,
-      //  0.0,
-      //  0.0,
-      //  NORMAL };
-      //sphereMtl["disneyParams"]->setUserData(sizeof(DisneyParams), &disneyParams);
+      sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
+      sphereMtl->setAnyHitProgram(RAY_TYPE_SHADOW, disneyAnyHit);
+      DisneyParams disneyParams{ RT_TEXTURE_ID_NULL,          
+      { 0.0,0.0,0.0 },
+      { 0.0,0.0,0.0 },
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        NORMAL };
+      sphereMtl["disneyParams"]->setUserData(sizeof(DisneyParams), &disneyParams);
       
       videoParams.spheres.push_back(std::move(context->createGeometryInstance(sphere, &sphereMtl, &sphereMtl + 1)));
     }
