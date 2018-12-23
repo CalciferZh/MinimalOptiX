@@ -20,7 +20,7 @@ struct VideoParams {
   // static
   std::vector<optix::GeometryInstance> spheres;
   // animation
-  const float gravity = 49.f;
+  const float gravity = 2000.f;
   const float attenuationCoef = 0.95f;
   // dynamic
   float angle{ 0.0 };
@@ -92,7 +92,7 @@ public:
   VideoParams videoParams;
   // user interface
   void keyPressEvent(QKeyEvent* e);
-  void record(int frames, const char* filename);
+  void record(int frames, const char* filename, bool saveFrames);
 
 private:
 	Ui::MinimalOptiXClass ui;
@@ -103,4 +103,8 @@ private:
   void updateVideo();
 
   optix::GeometryInstance buildLight(optix::float3 anchor, optix::float3 v1, optix::float3 v2, optix::Program& quadIntersect, optix::Program& quadBBox, optix::Program& lightMtl);
+  optix::GeometryInstance buildBall(SphereParams* sphereParams, LambertianParams* lambParams, optix::Program& sphereIntersect, optix::Program& sphereBBox, optix::Program& lambMtl);
+  optix::GeometryInstance buildBall(SphereParams* sphereParams, MetalParams* metalParams, optix::Program& sphereIntersect, optix::Program& sphereBBox, optix::Program& metalMtl);
+  optix::GeometryInstance buildBall(SphereParams* sphereParams, GlassParams* glassParams, optix::Program& sphereIntersect, optix::Program& sphereBBox, optix::Program& glassMtl);
+  optix::GeometryInstance buildBall(SphereParams* sphereParams, DisneyParams* disneyParams, optix::Program& sphereIntersect, optix::Program& sphereBBox, optix::Program& disneyMtl, optix::Program& disneyAnyHit);
 };

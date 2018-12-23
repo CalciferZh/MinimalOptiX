@@ -126,7 +126,7 @@ void generateVideo(std::vector<QImage>& images, const char* output_path) {
   const int width = 1920;
   const int height = 1080;
   const int in_linesize[1] = { 3 * width };
-  AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_MPEG1VIDEO);
+  AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_H264);
   if (!codec) {
     throw std::runtime_error("Codec init failed.");
   }
@@ -145,7 +145,7 @@ void generateVideo(std::vector<QImage>& images, const char* output_path) {
     throw std::runtime_error("Allocate video codec context failed.");
   }
 
-  c->bit_rate = 1000000;
+  c->bit_rate = 100000000;
   c->width = width;
   c->height = height;
   c->time_base.num = 1;

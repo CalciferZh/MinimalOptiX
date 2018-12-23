@@ -7,9 +7,9 @@
 using namespace optix;
 
 MinimalOptiX::MinimalOptiX(QWidget *parent)
-	: QMainWindow(parent)
+  : QMainWindow(parent)
 {
-	ui.setupUi(this);
+  ui.setupUi(this);
 
   setFixedSize(fixedWidth, fixedHeight);
   setWindowFlags(Qt::MSWindowsFixedSizeDialogHint);
@@ -25,11 +25,11 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   compilePtx();
   setupContext();
 
-  sceneId = SCENE_SPHERES;
-  renderScene();
+  //sceneId = SCENE_SPHERES;
+  //renderScene();
 
   //imageDemo();
-  //videoDemo();
+  videoDemo();
 }
 
 void MinimalOptiX::compilePtx() {
@@ -110,10 +110,10 @@ void MinimalOptiX::imageDemo() {
 }
 
 void MinimalOptiX::videoDemo() {
-  nSuperSampling = 32u;
+  nSuperSampling = 1u;
   sceneId = SCENE_SPHERES_VIDEO;
   renderScene(false, "VIDEO");
-  //record(25, "test.mpg");
+  //record(100, "test.mp4", false);
 }
 
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
@@ -148,16 +148,16 @@ void MinimalOptiX::setupContext() {
 
   Program exptProgram = context->createProgramFromPTXString(ptxStrs[exCuFileName], "exception");
   context->setExceptionProgram(0, exptProgram);
-  context["badColor"]->setFloat(0.f, 0.f, 0.f);
+  context["badColor"]->setFloat(1.f, 1.f, 1.f);
 }
 
 void MinimalOptiX::setupScene() {
   aabb.invalidate();
   if (sceneId == SCENE_SPHERES) {
     SphereParams sphereParams[3] = {
-      { 0.5f, { 0.f, 0.f, -1.f }, { 0.f, 0.f, 0.f } } ,
-      { 0.5f, { 1.f, 0.f, -1.f }, { 0.f, 0.5f, 0.f } } ,
-      { 0.5f, { -1.f, 0.f, -1.f }, { 0.f, -1.5f, 0.f } }
+      { 0.5f,{ 0.f, 0.f, -1.f },{ 0.f, 0.f, 0.f } } ,
+    { 0.5f,{ 1.f, 0.f, -1.f },{ 0.f, 0.5f, 0.f } } ,
+    { 0.5f,{ -1.f, 0.f, -1.f },{ 0.f, -1.5f, 0.f } }
     };
 
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
@@ -181,7 +181,7 @@ void MinimalOptiX::setupScene() {
     sphereMid["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams);
     Material sphereMidMtl = context->createMaterial();
     sphereMidMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
-    LambertianParams lambParams = { {0.1f, 0.2f, 0.5f} };
+    LambertianParams lambParams = { { 0.1f, 0.2f, 0.5f } };
     sphereMidMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
     GeometryInstance sphereMidGI = context->createGeometryInstance(sphereMid, &sphereMidMtl, &sphereMidMtl + 1);
 
@@ -192,7 +192,7 @@ void MinimalOptiX::setupScene() {
     sphereRight["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams + 1);
     Material sphereRightMtl = context->createMaterial();
     sphereRightMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, metalMtl);
-    MetalParams metalParams = { {0.8f, 0.6f, 0.2f}, 0.f };
+    MetalParams metalParams = { { 0.8f, 0.6f, 0.2f }, 0.f };
     sphereRightMtl["metalParams"]->setUserData(sizeof(MetalParams), &metalParams);
     GeometryInstance sphereRightGI = context->createGeometryInstance(sphereRight, &sphereRightMtl, &sphereRightMtl + 1);
 
@@ -203,7 +203,7 @@ void MinimalOptiX::setupScene() {
     sphereLeft["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams + 2);
     Material sphereLeftMtl = context->createMaterial();
     sphereLeftMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, glassMtl);
-    GlassParams glassParams = { {1.f, 1.f, 1.f}, 1.5f };
+    GlassParams glassParams = { { 1.f, 1.f, 1.f }, 1.5f };
     sphereLeftMtl["glassParams"]->setUserData(sizeof(glassParams), &glassParams);
     GeometryInstance sphereLeftGI = context->createGeometryInstance(sphereLeft, &sphereLeftMtl, &sphereLeftMtl + 1);
 
@@ -255,8 +255,7 @@ void MinimalOptiX::setupScene() {
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-  }
-  else if (sceneId == SCENE_COFFEE) {
+  } else if (sceneId == SCENE_COFFEE) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
@@ -269,8 +268,7 @@ void MinimalOptiX::setupScene() {
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-  }
-  else if (sceneId == SCENE_BEDROOM) {
+  } else if (sceneId == SCENE_BEDROOM) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
@@ -283,8 +281,7 @@ void MinimalOptiX::setupScene() {
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-  }
-  else if (sceneId == SCENE_DININGROOM) {
+  } else if (sceneId == SCENE_DININGROOM) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.f, 0.f, 0.f);
@@ -297,8 +294,7 @@ void MinimalOptiX::setupScene() {
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-  }
-  else if (sceneId == SCENE_STORMTROOPER) {
+  } else if (sceneId == SCENE_STORMTROOPER) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
@@ -311,8 +307,7 @@ void MinimalOptiX::setupScene() {
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-  }
-  else if (sceneId == SCENE_SPACESHIP) {
+  } else if (sceneId == SCENE_SPACESHIP) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
@@ -325,8 +320,7 @@ void MinimalOptiX::setupScene() {
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-  }
-  else if (sceneId == SCENE_CORNELL) {
+  } else if (sceneId == SCENE_CORNELL) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
@@ -339,8 +333,7 @@ void MinimalOptiX::setupScene() {
     Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
-  }
-  else if (sceneId == SCENE_HYPERION || sceneId == SCENE_DRAGON) {
+  } else if (sceneId == SCENE_HYPERION || sceneId == SCENE_DRAGON) {
     Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
     context->setMissProgram(0, missProgram);
     missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
@@ -359,7 +352,7 @@ void MinimalOptiX::setupScene() {
     rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
     context->setRayGenerationProgram(0, rayGenProgram);
   } else if (sceneId == SCENE_SPHERES_VIDEO) {
-    setUpVideo(32);
+    setUpVideo(256);
   }
 }
 
@@ -509,15 +502,13 @@ void MinimalOptiX::setupScene(const char* sceneName) {
       params.radius = light.radius;
       params.center = light.position;
       geo["sphereParams"]->setUserData(sizeof(SphereParams), &params);
-    }
-    else if (light.shape == QUAD) {
+    } else if (light.shape == QUAD) {
       geo->setIntersectionProgram(quadIntersect);
       geo->setBoundingBoxProgram(quadBBox);
       QuadParams params;
       setQuadParams(light.position, light.u, light.v, params);
       geo["quadParams"]->setUserData(sizeof(QuadParams), &params);
-    }
-    else {
+    } else {
       throw std::logic_error("No shape for light.");
     }
 
@@ -600,17 +591,19 @@ void MinimalOptiX::animate(float time) {
   }
 }
 
-void MinimalOptiX::record(int frames, const char* filename) {
+void MinimalOptiX::record(int frames, const char* filename, bool saveFrames = false) {
   std::vector<QImage> images;
   for (int i = 0; i < frames; ++i) {
     updateVideo();
     images.push_back(canvas.copy());
-    std::string name = "video" + std::to_string(i);
-    saveCurrentFrame(false, name);
-    if (i % 10 == 9) {
-      std::string _tmp = filename + std::to_string(i);
-      generateVideo(images, _tmp.c_str());
+    if (saveFrames) {
+      std::string name = "video" + std::to_string(i);
+      saveCurrentFrame(false, name);
     }
+    //if (i % 10 == 9) {
+    //  std::string _tmp = filename + std::to_string(i);
+    //  generateVideo(images, _tmp.c_str());
+    //}
   }
   generateVideo(images, filename);
 }
@@ -633,59 +626,80 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
   int parameter = 4;
 
   std::mt19937 random(42);
-  std::normal_distribution<float> stdNormal(0.0f, 0.1f);
-  std::uniform_real_distribution<float> uniform(0.0f, 1.0f);
+  std::normal_distribution<float> stdNormal(0.f, .1f);
+  std::uniform_real_distribution<float> uniform(0.f, 1.f);
   std::uniform_int_distribution<int> uniform_int(0, 2);
-  float radius = 10.f / nSpheres;
+  bool useDisney = false;
+  for (int i = 0; i < 3; ++i) {
+    videoParams.spheresParams.push_back({ 2.5f,{ -6.f + 6.f * i, 2.0f, 0.f },{ 0.f, 0.f, 0.f } });
+  }
   for (int i = 0; i < nSpheres; ++i) {
-    for (int j = 0; j < nSpheres; ++j) {
-      videoParams.spheresParams.push_back( { (uniform(random) + 1) / 2 * radius,
-        { -10.f + radius * (2 * i + 1), 2.f - abs(i + j - nSpheres) * 0.03f, -20.f + radius * (2 * j + 1) },
-        { 0.f, sqrt(2 * videoParams.gravity * abs(i + j - nSpheres) * 0.03f), 0.f } });
-      Geometry sphere = context->createGeometry();
-      sphere->setPrimitiveCount(1u);
-      sphere->setIntersectionProgram(sphereIntersect);
-      sphere->setBoundingBoxProgram(sphereBBox);
-      sphere["sphereParams"]->setUserData(sizeof(SphereParams), &(videoParams.spheresParams.back()));
-      Material sphereMtl = context->createMaterial();
-      int type = uniform_int(random);
-      if (type == 0) {
-        sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
-        LambertianParams lambParams{ { uniform(random), uniform(random), uniform(random) } };
-        sphereMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
-      } else if (type == 1) {
-        sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, metalMtl);
+    float x, z, radius;
+    do {
+      x = uniform(random) * 20.f - 10.f;
+      z = uniform(random) * 20.f - 10.f;
+      radius = 1.0f;
+      for (auto& param : videoParams.spheresParams) {
+        radius = std::min(radius, sqrt((x - param.center.x) * (x - param.center.x) + (z - param.center.z) * (z - param.center.z)) - param.radius);
+      }
+      radius *= 0.8;
+    } while (radius < .01f);
+    float h = sqrt(x * x + z * z) / 10;
+    radius = std::min(h + .5f, radius);
+    videoParams.spheresParams.push_back({ radius,{ x, h, z },{ 0.f, 0.f, 0.f } });
+  }
+  for (int i = 0; i < 3; ++i) {
+    if (useDisney) {
+
+      DisneyParams disneyParams{ RT_TEXTURE_ID_NULL,
+      { 0.2f + 0.1f * i, 0.5f + 0.1f * i, 0.5f + 0.1f * i },
+     // { 0.2f + 0.1f * i, 0.2f + 0.1f * i, 0.2f + 0.1f * i },
+      { 0.0f, 0.0f, 0.0f},
+        0.2f + 0.3f * i, 0.2f + 0.3f * i, 0.2f + 0.3f * i, 0.3f + 0.3f * i, 0.3f + 0.3f * i,
+        0.3f + 0.3f * i, 0.3f + 0.3f * i, 0.3f + 0.3f * i, 0.3f + 0.3f * i, 0.3f + 0.3f * i,
+        i == 1 ? GLASS : NORMAL };
+      videoParams.spheres.push_back(buildBall(&(videoParams.spheresParams[i]), &disneyParams, sphereIntersect, sphereBBox, disneyMtl, disneyAnyHit));
+    } else {
+      if (i == 0) {
+        LambertianParams lambParams{ { 0.5f, 0.8f, 0.8f } };
+        videoParams.spheres.push_back(buildBall(&(videoParams.spheresParams[i]), &lambParams, sphereIntersect, sphereBBox, lambMtl));
+      } else if (i == 2) {
         float tmp = stdNormal(random) + 0.5;
         tmp = min(0.9f, max(0.1f, tmp));
-        MetalParams metalParams{ { uniform(random), uniform(random), uniform(random) }, tmp};
-        sphereMtl["metalParams"]->setUserData(sizeof(MetalParams), &metalParams);
+        MetalParams metalParams{ { 0.9f, 0.7f, 0.7f }, tmp };
+        videoParams.spheres.push_back(buildBall(&(videoParams.spheresParams[i]), &metalParams, sphereIntersect, sphereBBox, metalMtl));
+      } else {
+        GlassParams glassParams{ { 1.f, 1.f, 1.f }, 1.5f };
+        videoParams.spheres.push_back(buildBall(&(videoParams.spheresParams[i]), &glassParams, sphereIntersect, sphereBBox, glassMtl));
+      }
+    }
+  }
+  for (int i = 3; i < videoParams.spheresParams.size(); ++i) {
+    if (useDisney) {
+      DisneyParams disneyParams{ RT_TEXTURE_ID_NULL,
+      { uniform(random), uniform(random), uniform(random) },
+      { uniform(random), uniform(random), uniform(random) },
+        uniform(random), uniform(random), uniform(random), 0.5f + 0.5f * uniform(random), uniform(random),
+        uniform(random), uniform(random), uniform(random), uniform(random), uniform(random),
+        uniform_int(random) == 2 ? GLASS : NORMAL };
+      videoParams.spheres.push_back(buildBall(&(videoParams.spheresParams[i]), &disneyParams, sphereIntersect, sphereBBox, disneyMtl, disneyAnyHit));
+    } else {
+      optix::float3 color{ 0.2f + 0.8f * uniform(random), 0.2f + 0.8f * uniform(random), 0.2f + 0.8f * uniform(random) };
+      int type = uniform_int(random);
+      if (type == 0) {
+        LambertianParams lambParams{ color };
+        videoParams.spheres.push_back(buildBall(&(videoParams.spheresParams[i]), &lambParams, sphereIntersect, sphereBBox, lambMtl));
+      } else if (type == 1) {
+        float tmp = stdNormal(random) + 0.5;
+        tmp = min(0.9f, max(0.1f, tmp));
+        MetalParams metalParams{ color, tmp };
+        videoParams.spheres.push_back(buildBall(&(videoParams.spheresParams[i]), &metalParams, sphereIntersect, sphereBBox, metalMtl));
       } else {
         float tmp = stdNormal(random) + 2.0;
         tmp = min(3.0f, max(1.5f, tmp));
-        sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, glassMtl);
         GlassParams glassParams{ { 1.f, 1.f, 1.f }, tmp };
-        sphereMtl["glassParams"]->setUserData(sizeof(GlassParams), &glassParams);
+        videoParams.spheres.push_back(buildBall(&(videoParams.spheresParams[i]), &glassParams, sphereIntersect, sphereBBox, glassMtl));
       }
-
-      sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
-      sphereMtl->setAnyHitProgram(RAY_TYPE_SHADOW, disneyAnyHit);
-      DisneyParams disneyParams{ RT_TEXTURE_ID_NULL,
-      { 0.0,0.0,0.0 },
-      { 0.0,0.0,0.0 },
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        NORMAL };
-      sphereMtl["disneyParams"]->setUserData(sizeof(DisneyParams), &disneyParams);
-
-      videoParams.spheres.push_back(std::move(context->createGeometryInstance(sphere, &sphereMtl, &sphereMtl + 1)));
     }
   }
 
@@ -694,27 +708,27 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
   quadFloor->setIntersectionProgram(quadIntersect);
   quadFloor->setBoundingBoxProgram(quadBBox);
   QuadParams quadParams;
-  float3 anchor  { -10.f, -0.5f, 0.f };
-  float3 v1 { 0.f, 0.f, -20.f };
-  float3 v2 { 20.f, 0.f, 0.f };
+  float3 anchor{ -100.f, -0.5f, 90.f };
+  float3 v1{ 0.f, 0.f, -110.f };
+  float3 v2{ 200.f, 0.f, 0.f };
   setQuadParams(anchor, v1, v2, quadParams);
   quadFloor["quadParams"]->setUserData(sizeof(QuadParams), &quadParams);
   Material quadFloorMtl = context->createMaterial();
-  quadFloorMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, metalMtl);
-  MetalParams metalParams{ { 0.7f, 0.9f, 0.9f }, 0.2f };
-  quadFloorMtl["metalParams"]->setUserData(sizeof(MetalParams), &metalParams);
+  quadFloorMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
+  LambertianParams lambParams{ { 0.7f, 0.9f, 0.9f }};
+  quadFloorMtl["lambParams"]->setUserData(sizeof(LambertianParams), &lambParams);
   objs.push_back(context->createGeometryInstance(quadFloor, &quadFloorMtl, &quadFloorMtl + 1));
 
   std::vector<GeometryInstance> lights;
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 4; ++j) {
-      lights.push_back(buildLight({ -7.5f + 5.f*i, 7.5f, -2.5f + -5.f*j }, { 0.f, 0.f, -2.5f }, { 2.5f, 0.f, 0.f }, quadIntersect, quadBBox, lightMtl));
+      lights.push_back(buildLight({ -7.5f + 5.f*i, 15.f, -2.5f + -5.f*j }, { 0.f, 0.f, -2.5f }, { 2.5f, 0.f, 0.f }, quadIntersect, quadBBox, lightMtl));
     }
   }
-  lights.push_back(buildLight({  -1.f, 0.5f, -75.f }, { 0.f, -0.5f, 0.f }, { 0.5f, 0.f,  0.f }, quadIntersect, quadBBox, lightMtl));
-  lights.push_back(buildLight({  -1.f, 0.5f,  25.f }, { 0.f,  0.5f, 0.f }, { 0.5f, 0.f,  0.f }, quadIntersect, quadBBox, lightMtl));
-  lights.push_back(buildLight({ -50.f, 0.5f, 9.f   }, { 0.f,  0.5f, 0.f }, {  0.f, 0.f, 0.5f }, quadIntersect, quadBBox, lightMtl));
-  lights.push_back(buildLight({  50.f, 0.5f, 9.f   }, { 0.f, -0.5f, 0.f }, {  0.f, 0.f, 0.5f }, quadIntersect, quadBBox, lightMtl));
+  lights.push_back(buildLight({ -1.f, 0.5f, -75.f }, { 0.f, -0.5f, 0.f }, { 0.5f, 0.f,  0.f }, quadIntersect, quadBBox, lightMtl));
+  lights.push_back(buildLight({ -1.f, 0.5f,  25.f }, { 0.f,  0.5f, 0.f }, { 0.5f, 0.f,  0.f }, quadIntersect, quadBBox, lightMtl));
+  lights.push_back(buildLight({ -50.f, 0.5f, 9.f }, { 0.f,  0.5f, 0.f }, { 0.f, 0.f, 0.5f }, quadIntersect, quadBBox, lightMtl));
+  lights.push_back(buildLight({ 50.f, 0.5f, 9.f }, { 0.f, -0.5f, 0.f }, { 0.f, 0.f, 0.5f }, quadIntersect, quadBBox, lightMtl));
 
   Buffer lightBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
   lightBuffer->setElementSize(sizeof(LightParams));
@@ -736,10 +750,11 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
   geoGrp->setAcceleration(context->createAcceleration("NoAccel"));
   context["topGroup"]->set(geoGrp);
   CamParams camParams;
-  optix::float3 lookFrom = { 0.f, 4.0f, -30.f };
+  optix::float3 lookFrom = { 0.f, 8.0f, 20.f };
   optix::float3 lookAt = { 0.f, 0.f, 0.f };
   optix::float3 up = { 0.f, 1.f, 0.f };
-  setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, 0.f, 1.f, camParams);
+  setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, .2f, 20.f, camParams);
+  //setCamParams(lookFrom, lookAt, up, 45, (float)fixedWidth / (float)fixedHeight, 1.0f, length(lookFrom - lookAt), camParams);
   Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
   rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
   context->setRayGenerationProgram(0, rayGenProgram);
@@ -748,10 +763,10 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
 void MinimalOptiX::updateVideo() {
   animate(0.002);
   for (size_t i = 0; i < videoParams.spheres.size(); ++i)
-    videoParams.spheres[i]->getGeometry()["sphereParams"]->setUserData(sizeof(SphereParams), &(videoParams.spheresParams[i]));
+    videoParams.spheres[i]["sphereParams"]->setUserData(sizeof(SphereParams), &(videoParams.spheresParams[i]));
   CamParams camParams;
-  float3 lookfrom = make_float3(20*sin(videoParams.angle), min(7.0, videoParams.angle / 10 + 4.0), -10-20*cos(videoParams.angle));
-  setCamParams(lookfrom, videoParams.lookAt, videoParams.up, 45, (float)fixedWidth / (float)fixedHeight, 0.f, 1.f, camParams);
+  float3 lookFrom = make_float3(20 * sin(videoParams.angle), min(12.0, videoParams.angle / 10 + 8.0), 20.f * cos(videoParams.angle));
+  setCamParams(lookFrom, videoParams.lookAt, videoParams.up, 45, (float)fixedWidth / (float)fixedHeight, .2f, 20.f, camParams);
   Program rayGenProgram = context->createProgramFromPTXString(ptxStrs[camCuFileName], "camera");
   rayGenProgram["camParams"]->setUserData(sizeof(CamParams), &camParams);
   context->setRayGenerationProgram(0, rayGenProgram);
@@ -778,4 +793,53 @@ GeometryInstance MinimalOptiX::buildLight(float3 anchor, float3 v1, float3 v2, P
   lightParams.emission = make_float3(1.f);
   quadLightMtl["lightParams"]->setUserData(sizeof(LightParams), &lightParams);
   return context->createGeometryInstance(quadLight, &quadLightMtl, &quadLightMtl + 1);
+}
+
+GeometryInstance MinimalOptiX::buildBall(SphereParams* sphereParams, LambertianParams* lambParams, Program& sphereIntersect, Program& sphereBBox, Program& lambMtl) {
+  Geometry sphere = context->createGeometry();
+  sphere->setPrimitiveCount(1u);
+  sphere->setIntersectionProgram(sphereIntersect);
+  sphere->setBoundingBoxProgram(sphereBBox);
+  sphere["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams);
+  Material sphereMtl = context->createMaterial();
+  sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, lambMtl);
+  sphereMtl["lambParams"]->setUserData(sizeof(LambertianParams), lambParams);
+  return context->createGeometryInstance(sphere, &sphereMtl, &sphereMtl + 1);
+}
+
+GeometryInstance MinimalOptiX::buildBall(SphereParams* sphereParams, MetalParams* metalParams, Program& sphereIntersect, Program& sphereBBox, Program& metalMtl) {
+  Geometry sphere = context->createGeometry();
+  sphere->setPrimitiveCount(1u);
+  sphere->setIntersectionProgram(sphereIntersect);
+  sphere->setBoundingBoxProgram(sphereBBox);
+  sphere["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams);
+  Material sphereMtl = context->createMaterial();
+  sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, metalMtl);
+  sphereMtl["metalParams"]->setUserData(sizeof(MetalParams), metalParams);
+  return context->createGeometryInstance(sphere, &sphereMtl, &sphereMtl + 1);
+}
+
+GeometryInstance MinimalOptiX::buildBall(SphereParams* sphereParams, GlassParams* glassParams, Program& sphereIntersect, Program& sphereBBox, Program& glassMtl) {
+  Geometry sphere = context->createGeometry();
+  sphere->setPrimitiveCount(1u);
+  sphere->setIntersectionProgram(sphereIntersect);
+  sphere->setBoundingBoxProgram(sphereBBox);
+  sphere["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams);
+  Material sphereMtl = context->createMaterial();
+  sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, glassMtl);
+  sphereMtl["glassParams"]->setUserData(sizeof(GlassParams), glassParams);
+  return context->createGeometryInstance(sphere, &sphereMtl, &sphereMtl + 1);
+}
+
+GeometryInstance MinimalOptiX::buildBall(SphereParams* sphereParams, DisneyParams* disneyParams, Program& sphereIntersect, Program& sphereBBox, Program& disneyMtl, Program& disneyAnyHit) {
+  Geometry sphere = context->createGeometry();
+  sphere->setPrimitiveCount(1u);
+  sphere->setIntersectionProgram(sphereIntersect);
+  sphere->setBoundingBoxProgram(sphereBBox);
+  sphere["sphereParams"]->setUserData(sizeof(SphereParams), sphereParams);
+  Material sphereMtl = context->createMaterial();
+  sphereMtl->setClosestHitProgram(RAY_TYPE_RADIANCE, disneyMtl);
+  sphereMtl->setAnyHitProgram(RAY_TYPE_SHADOW, disneyAnyHit);
+  sphereMtl["disneyParams"]->setUserData(sizeof(DisneyParams), disneyParams);
+  return context->createGeometryInstance(sphere, &sphereMtl, &sphereMtl + 1);
 }
