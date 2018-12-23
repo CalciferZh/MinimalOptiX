@@ -81,7 +81,7 @@ public:
   SceneId sceneId;
   uint fixedWidth = 1920u;
   uint fixedHeight = 1080u;
-  uint nSuperSampling = 512u;
+  uint nSuperSampling = 32u;
   uint rayMaxDepth = 256u;
   float rayMinIntensity = 0.001f;
   float rayEpsilonT = 0.001f;

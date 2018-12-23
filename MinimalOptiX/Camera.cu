@@ -14,23 +14,24 @@ rtDeclareVariable(uint2, launchIdx, rtLaunchIndex, );
 rtDeclareVariable(uint2, launchDim, rtLaunchDim, );
 rtDeclareVariable(float, rayEpsilonT, , );
 
-rtDeclareVariable(CamParams, camParams, , );
 rtBuffer<float3, 2> accuBuffer;
 
-RT_PROGRAM void pinholeCamera() {
+rtDeclareVariable(CamParams, camParams, , );
+
+RT_PROGRAM void camera() {
   Payload pld;
   pld.depth = 1;
   pld.randSeed = tea<16>(launchIdx.y * launchDim.x + launchIdx.x, randSeed);
   pld.color = make_float3(1.f);
 
-  Ray ray;
-  ray.origin = camParams.origin;
-  ray.ray_type = rayTypeRadiance;
-  ray.tmin = rayEpsilonT;
-  ray.tmax = RT_DEFAULT_MAX;
+  float3 randInLens = camParams.lensRadius * randInUnitDisk(pld.randSeed);
+  float3 offset = camParams.u * randInLens.x + camParams.v * randInLens.y;
   float2 xy = (make_float2(launchIdx) + make_float2(rand(pld.randSeed), rand(pld.randSeed)) - 0.5f) / make_float2(launchDim);
-  ray.direction = normalize(
-    camParams.srcLowerLeftCorner + xy.x * camParams.horizontal + xy.y * camParams.vertical - camParams.origin
+  Ray ray(
+    camParams.origin + offset,
+    normalize(camParams.scrLowerLeftCorner + xy.x * camParams.horizontal + xy.y * camParams.vertical - camParams.origin - offset),
+    rayTypeRadiance,
+    rayEpsilonT
   );
 
   rtTrace(topGroup, ray, pld);

@@ -13,7 +13,10 @@ struct CamParams {
   optix::float3 origin;
   optix::float3 horizontal;
   optix::float3 vertical;
-  optix::float3 srcLowerLeftCorner;
+  optix::float3 scrLowerLeftCorner;
+  optix::float3 u;
+  optix::float3 v;
+  float lensRadius;
 };
 
 struct SphereParams {

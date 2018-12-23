@@ -42,6 +42,15 @@ __device__ __inline__ float3 randInUnitSphere(int& seed) {
   return res;
 }
 
+__device__ __inline__ float3 randInUnitDisk(int& seed) {
+  static float3 ones = { 1.f, 1.f, 0.f };
+  float3 res;
+  do {
+    res = make_float3(rand(seed), rand(seed), 0) * 2 - ones;
+  } while (length(res) >= 1.f);
+  return res;
+}
+
 __device__ __inline__ uchar4 make_color(const float3& c) {
   return make_uchar4(
     static_cast<unsigned char>(__saturatef(c.x)*255.99f),
@@ -185,4 +194,5 @@ __device__ __inline__ Payload folkPayload(Payload& parent) {
   child.depth = parent.depth + 1;
   child.color = make_float3(1.f);
   child.randSeed = tea<16>(parent.randSeed, child.depth);
+  return child;
 }

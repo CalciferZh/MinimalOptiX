@@ -74,18 +74,28 @@ void setQuadParams(optix::float3& anchor, optix::float3& v1, optix::float3& v2, 
   quadParams.anchor = anchor;
 }
 
-void setCamParams(optix::float3& lookFrom, optix::float3& lookAt, optix::float3& up, float vFoV, float aspect, CamParams& camParams) {
+void setCamParams(
+  optix::float3& lookFrom, optix::float3& lookAt, optix::float3& up,
+  float vFoV, float aspect, float aperture, float focus, CamParams& camParams) {
+
   static const float pi = 3.141592653589793238462643383279502884;
   float theta = vFoV * pi / 180;
   float halfHeight = tan(theta / 2);
   float halfWidth = aspect * halfHeight;
-  camParams.origin = lookFrom;
   optix::float3 w = optix::normalize(lookFrom - lookAt);
   optix::float3 u = optix::normalize(optix::cross(up, w));
   optix::float3 v = optix::cross(w, u);
-  camParams.srcLowerLeftCorner = camParams.origin - halfWidth * u - halfHeight * v - w;
-  camParams.horizontal = 2 * halfWidth * u;
-  camParams.vertical = 2 * halfHeight * v;
+  optix::float3 scrLowerLeftCorner = lookFrom - focus * halfWidth * u - focus * halfHeight * v - focus * w;
+  optix::float3 horizontal = 2 * focus * halfWidth * u;
+  optix::float3 vertical = 2 * focus * halfHeight * v;
+
+  camParams.origin = lookFrom;
+  camParams.horizontal = horizontal;
+  camParams.vertical = vertical;
+  camParams.scrLowerLeftCorner = scrLowerLeftCorner;
+  camParams.u = u;
+  camParams.v = v;
+  camParams.lensRadius = aperture / 2;
 }
 
 void initDisneyParams(DisneyParams& disneyParams) {
