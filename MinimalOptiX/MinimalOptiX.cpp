@@ -364,6 +364,8 @@ void MinimalOptiX::setupScene() {
 }
 
 void MinimalOptiX::setupScene(const char* sceneName) {
+  nVertices = 0;
+  nFaces = 0;
   Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
   Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
   Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
@@ -403,6 +405,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
       memcpy(vertexBuffer->map(), attrib.vertices.data(), sizeof(float) * attrib.vertices.size());
       vertexBuffer->unmap();
       geo["vertexBuffer"]->set(vertexBuffer);
+      nVertices += attrib.vertices.size() / 3;
 
       Buffer normalBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT3, attrib.normals.size() / 3);
       if (!attrib.normals.empty()) {
@@ -443,6 +446,7 @@ void MinimalOptiX::setupScene(const char* sceneName) {
       geo["vertIdxBuffer"]->set(vertIdxBuffer);
       geo["texIdxBuffer"]->set(texIdxBuffer);
       geo["normIdxBuffer"]->set(normIdxBuffer);
+      nFaces += shapes[s].mesh.num_face_vertices.size();
 
       // texture
       if (!scene.textures[i].empty()) {
@@ -561,6 +565,7 @@ void MinimalOptiX::renderScene(bool autoSave, std::string fileNamePrefix) {
   if (autoSave) {
     saveCurrentFrame(false, fileNamePrefix);
   }
+  qDebug() << "vertices:" << nVertices << "faces:" << nFaces;
 }
 
 void MinimalOptiX::move(SphereParams& param, float time) {

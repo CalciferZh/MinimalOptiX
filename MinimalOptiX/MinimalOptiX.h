@@ -83,6 +83,8 @@ public:
   uint fixedHeight = 1080u;
   uint nSuperSampling = 32u;
   uint rayMaxDepth = 256u;
+  size_t nVertices = 0;
+  size_t nFaces = 0;
   float rayMinIntensity = 0.001f;
   float rayEpsilonT = 0.001f;
 
