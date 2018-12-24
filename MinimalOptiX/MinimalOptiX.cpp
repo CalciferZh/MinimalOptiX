@@ -110,10 +110,10 @@ void MinimalOptiX::imageDemo() {
 }
 
 void MinimalOptiX::videoDemo() {
-  nSuperSampling = 1u;
+  nSuperSampling = 64u;
   sceneId = SCENE_SPHERES_VIDEO;
   renderScene(false, "VIDEO");
-  //record(100, "test.mp4", false);
+  //record(1000, "test.mp4", true);
 }
 
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
@@ -585,7 +585,7 @@ void MinimalOptiX::move(SphereParams& param, float time) {
 }
 
 void MinimalOptiX::animate(float time) {
-  videoParams.angle += time * 5;
+  videoParams.angle += time * 10;
   for (size_t i = 0; i < videoParams.spheresParams.size(); ++i) {
     move(videoParams.spheresParams[i], time);
   }
@@ -600,10 +600,10 @@ void MinimalOptiX::record(int frames, const char* filename, bool saveFrames = fa
       std::string name = "video" + std::to_string(i);
       saveCurrentFrame(false, name);
     }
-    //if (i % 10 == 9) {
-    //  std::string _tmp = filename + std::to_string(i);
-    //  generateVideo(images, _tmp.c_str());
-    //}
+    if (i % 25 == 24) {
+      std::string _tmp = std::to_string(i) + filename;
+      generateVideo(images, _tmp.c_str());
+    }
   }
   generateVideo(images, filename);
 }
@@ -612,7 +612,7 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
   std::vector<GeometryInstance> objs;
   Program missProgram = context->createProgramFromPTXString(ptxStrs[msCuFileName], "staticMiss");
   context->setMissProgram(0, missProgram);
-  missProgram["bgColor"]->setFloat(0.5f, 0.5f, 0.5f);
+  missProgram["bgColor"]->setFloat(0.2f, 0.2f, 0.2f);
   Program sphereIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereIntersect");
   Program sphereBBox = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "sphereBBox");
   Program quadIntersect = context->createProgramFromPTXString(ptxStrs[geoCuFileName], "quadIntersect");
@@ -631,13 +631,13 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
   std::uniform_int_distribution<int> uniform_int(0, 2);
   bool useDisney = false;
   for (int i = 0; i < 3; ++i) {
-    videoParams.spheresParams.push_back({ 2.5f,{ -6.f + 6.f * i, 2.0f, 0.f },{ 0.f, 0.f, 0.f } });
+    videoParams.spheresParams.push_back({ 3.0f,{ -10.f + 10.f * i, 2.0f, 0.f },{ 0.f, 0.f, 0.f } });
   }
   for (int i = 0; i < nSpheres; ++i) {
     float x, z, radius;
     do {
-      x = uniform(random) * 20.f - 10.f;
-      z = uniform(random) * 20.f - 10.f;
+      x = uniform(random) * 30.f - 15.f;
+      z = uniform(random) * 30.f - 15.f;
       radius = 1.0f;
       for (auto& param : videoParams.spheresParams) {
         radius = std::min(radius, sqrt((x - param.center.x) * (x - param.center.x) + (z - param.center.z) * (z - param.center.z)) - param.radius);
@@ -650,7 +650,6 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
   }
   for (int i = 0; i < 3; ++i) {
     if (useDisney) {
-
       DisneyParams disneyParams{ RT_TEXTURE_ID_NULL,
       { 0.2f + 0.1f * i, 0.5f + 0.1f * i, 0.5f + 0.1f * i },
      // { 0.2f + 0.1f * i, 0.2f + 0.1f * i, 0.2f + 0.1f * i },
@@ -708,8 +707,8 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
   quadFloor->setIntersectionProgram(quadIntersect);
   quadFloor->setBoundingBoxProgram(quadBBox);
   QuadParams quadParams;
-  float3 anchor{ -100.f, -0.5f, 90.f };
-  float3 v1{ 0.f, 0.f, -110.f };
+  float3 anchor{ -100.f, -0.5f, 100.f };
+  float3 v1{ 0.f, 0.f, -200.f };
   float3 v2{ 200.f, 0.f, 0.f };
   setQuadParams(anchor, v1, v2, quadParams);
   quadFloor["quadParams"]->setUserData(sizeof(QuadParams), &quadParams);
@@ -722,13 +721,16 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
   std::vector<GeometryInstance> lights;
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 4; ++j) {
-      lights.push_back(buildLight({ -7.5f + 5.f*i, 15.f, -2.5f + -5.f*j }, { 0.f, 0.f, -2.5f }, { 2.5f, 0.f, 0.f }, quadIntersect, quadBBox, lightMtl));
+      lights.push_back(buildLight({ -24.f + 10.f * i, 15.f, -24.f + 10.f*j }, { 0.f, 0.f, -8.f }, { 8.f, 0.f, 0.f }, quadIntersect, quadBBox, lightMtl));
     }
   }
-  lights.push_back(buildLight({ -1.f, 0.5f, -75.f }, { 0.f, -0.5f, 0.f }, { 0.5f, 0.f,  0.f }, quadIntersect, quadBBox, lightMtl));
-  lights.push_back(buildLight({ -1.f, 0.5f,  25.f }, { 0.f,  0.5f, 0.f }, { 0.5f, 0.f,  0.f }, quadIntersect, quadBBox, lightMtl));
-  lights.push_back(buildLight({ -50.f, 0.5f, 9.f }, { 0.f,  0.5f, 0.f }, { 0.f, 0.f, 0.5f }, quadIntersect, quadBBox, lightMtl));
-  lights.push_back(buildLight({ 50.f, 0.5f, 9.f }, { 0.f, -0.5f, 0.f }, { 0.f, 0.f, 0.5f }, quadIntersect, quadBBox, lightMtl));
+  constexpr int nLight = 16;
+  constexpr float angle = 3.1415926 * 2 / nLight;
+  for (int i = 0; i < nLight; ++i) {
+    lights.push_back(buildLight({ 40.f * sin(i * angle), 1.f, 40.f * cos(i * angle) }, { 0.f, 4.f, 0.f },
+      { 10.f * sin(i * angle + angle) - 10.f * sin(i * angle), 0.f, 10.f * cos(i * angle + angle) - 10.f * cos(i * angle) }, quadIntersect, quadBBox, lightMtl));
+  }
+
 
   Buffer lightBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
   lightBuffer->setElementSize(sizeof(LightParams));
