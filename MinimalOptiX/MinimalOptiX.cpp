@@ -113,7 +113,7 @@ void MinimalOptiX::videoDemo() {
   nSuperSampling = 64u;
   sceneId = SCENE_SPHERES_VIDEO;
   renderScene(false, "VIDEO");
-  //record(1000, "test.mp4", true);
+  record(1000, "test.mp4", true);
 }
 
 void MinimalOptiX::keyPressEvent(QKeyEvent* e) {
@@ -585,7 +585,7 @@ void MinimalOptiX::move(SphereParams& param, float time) {
 }
 
 void MinimalOptiX::animate(float time) {
-  videoParams.angle += time * 10;
+  videoParams.angle += time * 5;
   for (size_t i = 0; i < videoParams.spheresParams.size(); ++i) {
     move(videoParams.spheresParams[i], time);
   }
@@ -599,10 +599,6 @@ void MinimalOptiX::record(int frames, const char* filename, bool saveFrames = fa
     if (saveFrames) {
       std::string name = "video" + std::to_string(i);
       saveCurrentFrame(false, name);
-    }
-    if (i % 25 == 24) {
-      std::string _tmp = std::to_string(i) + filename;
-      generateVideo(images, _tmp.c_str());
     }
   }
   generateVideo(images, filename);
@@ -644,7 +640,7 @@ void MinimalOptiX::setUpVideo(int nSpheres) {
       }
       radius *= 0.8;
     } while (radius < .01f);
-    float h = sqrt(x * x + z * z) / 10;
+    float h = sqrt(x * x + z * z);
     radius = std::min(h + .5f, radius);
     videoParams.spheresParams.push_back({ radius,{ x, h, z },{ 0.f, 0.f, 0.f } });
   }

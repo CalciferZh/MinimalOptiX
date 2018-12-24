@@ -20,8 +20,8 @@ struct VideoParams {
   // static
   std::vector<optix::GeometryInstance> spheres;
   // animation
-  const float gravity = 2000.f;
-  const float attenuationCoef = 0.95f;
+  const float gravity = 4000.f;
+  const float attenuationCoef = 0.9f;
   // dynamic
   float angle{ 0.0 };
   optix::float3 lookAt { 0.f, 0.f, 0.f };
