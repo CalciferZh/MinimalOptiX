@@ -1,5 +1,7 @@
 *.png
 *.mpg
+*.avi
+*.mp4
 .vscode/
 MinimalOptiX/MinimalOptiX.vcxproj
 MinimalOptiX.sln

@@ -110,7 +110,7 @@ void MinimalOptiX::imageDemo() {
 }
 
 void MinimalOptiX::videoDemo() {
-  nSuperSampling = 64u;
+  nSuperSampling = 128u;
   sceneId = SCENE_SPHERES_VIDEO;
   renderScene(false, "VIDEO");
   record(1000, "test.mp4", true);
@@ -601,7 +601,7 @@ void MinimalOptiX::record(int frames, const char* filename, bool saveFrames = fa
       saveCurrentFrame(false, name);
     }
   }
-  generateVideo(images, filename);
+  //generateVideo(images, filename);
 }
 
 void MinimalOptiX::setUpVideo(int nSpheres) {
