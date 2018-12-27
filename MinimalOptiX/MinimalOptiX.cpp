@@ -25,11 +25,11 @@ MinimalOptiX::MinimalOptiX(QWidget *parent)
   compilePtx();
   setupContext();
 
-  //sceneId = SCENE_SPHERES;
-  //renderScene();
+  sceneId = SCENE_SPHERES;
+  renderScene();
 
   //imageDemo();
-  videoDemo();
+  // videoDemo();
 }
 
 void MinimalOptiX::compilePtx() {
